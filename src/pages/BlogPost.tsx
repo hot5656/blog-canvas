@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Clock, Calendar, Trash2 } from "lucide-react";
 import { BlogPost as BlogPostType } from "@/types/blog";
-import { getPostById, deletePost } from "@/lib/blogData";
+import { getPostByIdFromSupabase, deletePostFromSupabase } from "@/lib/supabaseBlogData";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,21 +14,32 @@ const BlogPost = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (id) {
-      const foundPost = getPostById(id);
-      setPost(foundPost || null);
-      setLoading(false);
-    }
+    const loadPost = async () => {
+      if (id) {
+        const foundPost = await getPostByIdFromSupabase(id);
+        setPost(foundPost || null);
+        setLoading(false);
+      }
+    };
+    loadPost();
   }, [id]);
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (post) {
-      deletePost(post.id);
-      toast({
-        title: "Post deleted",
-        description: "The post has been removed from your blog.",
-      });
-      navigate("/");
+      const success = await deletePostFromSupabase(post.id);
+      if (success) {
+        toast({
+          title: "Post deleted",
+          description: "The post has been removed from your blog.",
+        });
+        navigate("/");
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to delete post. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
