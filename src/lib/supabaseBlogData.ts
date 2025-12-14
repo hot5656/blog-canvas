@@ -25,6 +25,7 @@ export async function getPostsFromSupabase(): Promise<BlogPost[]> {
     date: post.date,
     readTime: post.read_time || '5 min read',
     tags: post.tags || [],
+    status: post.status || 'published',
   }));
 }
 
@@ -53,6 +54,7 @@ export async function getPostByIdFromSupabase(id: string): Promise<BlogPost | un
     date: data.date,
     readTime: data.read_time || '5 min read',
     tags: data.tags || [],
+    status: data.status || 'published',
   };
 }
 
@@ -69,6 +71,7 @@ export async function addPostToSupabase(post: Omit<BlogPost, 'id'>): Promise<Blo
       date: post.date,
       read_time: post.readTime,
       tags: post.tags,
+      status: post.status || 'published',
     })
     .select()
     .single();
@@ -91,6 +94,52 @@ export async function addPostToSupabase(post: Omit<BlogPost, 'id'>): Promise<Blo
     date: data.date,
     readTime: data.read_time || '5 min read',
     tags: data.tags || [],
+    status: data.status || 'published',
+  };
+}
+
+export async function updatePostInSupabase(id: string, post: Partial<Omit<BlogPost, 'id'>>): Promise<BlogPost | null> {
+  const updateData: Record<string, unknown> = {};
+  
+  if (post.title !== undefined) updateData.title = post.title;
+  if (post.excerpt !== undefined) updateData.excerpt = post.excerpt;
+  if (post.content !== undefined) updateData.content = post.content;
+  if (post.featuredImage !== undefined) updateData.featured_image = post.featuredImage;
+  if (post.author !== undefined) {
+    updateData.author_name = post.author.name;
+    updateData.author_avatar = post.author.avatar;
+  }
+  if (post.date !== undefined) updateData.date = post.date;
+  if (post.readTime !== undefined) updateData.read_time = post.readTime;
+  if (post.tags !== undefined) updateData.tags = post.tags;
+  if (post.status !== undefined) updateData.status = post.status;
+
+  const { data, error } = await supabase
+    .from('posts')
+    .update(updateData)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating post:', error);
+    return null;
+  }
+
+  return {
+    id: data.id,
+    title: data.title,
+    excerpt: data.excerpt || '',
+    content: data.content,
+    featuredImage: data.featured_image || '/placeholder.svg',
+    author: {
+      name: data.author_name || 'Anonymous',
+      avatar: data.author_avatar || '/placeholder.svg',
+    },
+    date: data.date,
+    readTime: data.read_time || '5 min read',
+    tags: data.tags || [],
+    status: data.status || 'published',
   };
 }
 

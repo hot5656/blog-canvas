@@ -1,26 +1,36 @@
 import { Link } from "react-router-dom";
-import { Trash2 } from "lucide-react";
+import { Trash2, Pencil } from "lucide-react";
 import { BlogPost } from "@/types/blog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface BlogCardProps {
   post: BlogPost;
   onDelete: (id: string) => void;
+  onEdit: (post: BlogPost) => void;
   featured?: boolean;
   index?: number;
 }
 
-const BlogCard = ({ post, onDelete, featured = false, index = 0 }: BlogCardProps) => {
+const BlogCard = ({ post, onDelete, onEdit, featured = false, index = 0 }: BlogCardProps) => {
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     onDelete(post.id);
   };
 
+  const handleEdit = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onEdit(post);
+  };
+
+  const isDraft = post.status === 'draft';
+
   if (featured) {
     return (
       <article 
-        className="group relative overflow-hidden rounded-2xl bg-card shadow-card transition-base hover:shadow-card-hover animate-fade-in"
+        className={`group relative overflow-hidden rounded-2xl bg-card shadow-card transition-base hover:shadow-card-hover animate-fade-in ${isDraft ? 'opacity-75' : ''}`}
         style={{ animationDelay: `${index * 100}ms` }}
       >
         <Link to={`/post/${post.id}`} className="block">
@@ -32,6 +42,11 @@ const BlogCard = ({ post, onDelete, featured = false, index = 0 }: BlogCardProps
                 className="h-full w-full object-cover transition-slow group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-foreground/20 to-transparent opacity-0 group-hover:opacity-100 transition-base" />
+              {isDraft && (
+                <Badge variant="secondary" className="absolute top-3 left-3 bg-amber-500/90 text-white">
+                  Draft
+                </Badge>
+              )}
             </div>
             <div className="flex flex-col justify-center p-6 md:p-10">
               <div className="flex flex-wrap gap-2 mb-4">
@@ -64,14 +79,24 @@ const BlogCard = ({ post, onDelete, featured = false, index = 0 }: BlogCardProps
                     </p>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleDelete}
-                  className="opacity-0 group-hover:opacity-100 transition-base hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleEdit}
+                    className="opacity-0 group-hover:opacity-100 transition-base hover:bg-primary/10 hover:text-primary"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleDelete}
+                    className="opacity-0 group-hover:opacity-100 transition-base hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -82,7 +107,7 @@ const BlogCard = ({ post, onDelete, featured = false, index = 0 }: BlogCardProps
 
   return (
     <article 
-      className="group relative overflow-hidden rounded-xl bg-card shadow-card transition-base hover:shadow-card-hover animate-fade-in"
+      className={`group relative overflow-hidden rounded-xl bg-card shadow-card transition-base hover:shadow-card-hover animate-fade-in ${isDraft ? 'opacity-75' : ''}`}
       style={{ animationDelay: `${index * 100}ms` }}
     >
       <Link to={`/post/${post.id}`} className="block">
@@ -93,14 +118,29 @@ const BlogCard = ({ post, onDelete, featured = false, index = 0 }: BlogCardProps
             className="h-full w-full object-cover transition-slow group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-foreground/30 to-transparent opacity-0 group-hover:opacity-100 transition-base" />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleDelete}
-            className="absolute top-3 right-3 bg-card/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-base hover:bg-destructive hover:text-destructive-foreground"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          {isDraft && (
+            <Badge variant="secondary" className="absolute top-3 left-3 bg-amber-500/90 text-white">
+              Draft
+            </Badge>
+          )}
+          <div className="absolute top-3 right-3 flex gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleEdit}
+              className="bg-card/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-base hover:bg-primary hover:text-primary-foreground"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDelete}
+              className="bg-card/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-base hover:bg-destructive hover:text-destructive-foreground"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         <div className="p-5">
           <div className="flex flex-wrap gap-2 mb-3">

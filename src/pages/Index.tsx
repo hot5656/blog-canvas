@@ -1,14 +1,17 @@
 import { useState, useEffect } from "react";
 import { BlogPost } from "@/types/blog";
-import { getPostsFromSupabase, addPostToSupabase, deletePostFromSupabase } from "@/lib/supabaseBlogData";
+import { getPostsFromSupabase, addPostToSupabase, deletePostFromSupabase, updatePostInSupabase } from "@/lib/supabaseBlogData";
 import Header from "@/components/Header";
 import BlogCard from "@/components/BlogCard";
 import AddPostModal from "@/components/AddPostModal";
+import EditPostModal from "@/components/EditPostModal";
 import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -35,6 +38,32 @@ const Index = () => {
       toast({
         title: "Error",
         description: "Failed to publish post. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditPost = (post: BlogPost) => {
+    setEditingPost(post);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSavePost = async (id: string, updates: Partial<Omit<BlogPost, "id">>) => {
+    const updated = await updatePostInSupabase(id, updates);
+    if (updated) {
+      setPosts(posts.map(p => p.id === id ? updated : p));
+      toast({
+        title: "Post updated!",
+        description: updates.status === 'published' 
+          ? "Your post is now published." 
+          : updates.status === 'draft' 
+            ? "Your post is now a draft." 
+            : "Your changes have been saved.",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to update post. Please try again.",
         variant: "destructive",
       });
     }
@@ -94,6 +123,7 @@ const Index = () => {
                 <BlogCard 
                   post={featuredPost} 
                   onDelete={handleDeletePost}
+                  onEdit={handleEditPost}
                   featured 
                   index={0}
                 />
@@ -116,6 +146,7 @@ const Index = () => {
                       key={post.id} 
                       post={post} 
                       onDelete={handleDeletePost}
+                      onEdit={handleEditPost}
                       index={index + 1}
                     />
                   ))}
@@ -153,6 +184,16 @@ const Index = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAdd={handleAddPost}
+      />
+
+      <EditPostModal
+        isOpen={isEditModalOpen}
+        post={editingPost}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingPost(null);
+        }}
+        onSave={handleSavePost}
       />
     </div>
   );
