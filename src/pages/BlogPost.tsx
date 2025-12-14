@@ -43,25 +43,96 @@ const BlogPost = () => {
     }
   };
 
+  // Format inline markdown: **bold**, *italic*
+  const formatInlineMarkdown = (text: string) => {
+    const parts: (string | JSX.Element)[] = [];
+    let remaining = text;
+    let keyIndex = 0;
+
+    while (remaining.length > 0) {
+      // Match **bold** first (before *italic*)
+      const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
+      // Match *italic* (single asterisk)
+      const italicMatch = remaining.match(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/);
+
+      let firstMatch: { match: RegExpMatchArray; type: 'bold' | 'italic' } | null = null;
+
+      if (boldMatch && italicMatch) {
+        firstMatch = (boldMatch.index! <= italicMatch.index!) 
+          ? { match: boldMatch, type: 'bold' } 
+          : { match: italicMatch, type: 'italic' };
+      } else if (boldMatch) {
+        firstMatch = { match: boldMatch, type: 'bold' };
+      } else if (italicMatch) {
+        firstMatch = { match: italicMatch, type: 'italic' };
+      }
+
+      if (firstMatch) {
+        const { match, type } = firstMatch;
+        const beforeText = remaining.slice(0, match.index!);
+        if (beforeText) parts.push(beforeText);
+        
+        if (type === 'bold') {
+          parts.push(<strong key={keyIndex++} className="font-semibold">{match[1]}</strong>);
+        } else {
+          parts.push(<em key={keyIndex++} className="italic">{match[1]}</em>);
+        }
+        
+        remaining = remaining.slice(match.index! + match[0].length);
+      } else {
+        parts.push(remaining);
+        break;
+      }
+    }
+
+    return parts.length > 0 ? parts : [text];
+  };
+
   const formatContent = (content: string) => {
-    return content.split("\n\n").map((paragraph, index) => {
+    // Convert literal \n to actual newlines
+    const processedContent = content.replace(/\\n/g, '\n');
+    
+    return processedContent.split("\n\n").map((paragraph, index) => {
+      // Handle ### h3 headings
+      if (paragraph.startsWith("### ")) {
+        return (
+          <h3 key={index} className="text-xl font-semibold mt-8 mb-3 font-serif">
+            {formatInlineMarkdown(paragraph.replace("### ", ""))}
+          </h3>
+        );
+      }
+      // Handle ## h2 headings
       if (paragraph.startsWith("## ")) {
         return (
           <h2 key={index} className="text-2xl font-semibold mt-10 mb-4 font-serif">
-            {paragraph.replace("## ", "")}
+            {formatInlineMarkdown(paragraph.replace("## ", ""))}
           </h2>
         );
       }
+      // Handle blockquotes
       if (paragraph.startsWith("> ")) {
         return (
           <blockquote key={index} className="border-l-4 border-primary/50 pl-6 italic my-6 text-muted-foreground">
-            {paragraph.replace("> ", "")}
+            {formatInlineMarkdown(paragraph.replace("> ", ""))}
           </blockquote>
+        );
+      }
+      // Handle list items (- or +)
+      if (paragraph.match(/^[\-\+]\s/m)) {
+        const items = paragraph.split('\n').filter(line => line.match(/^[\-\+]\s/));
+        return (
+          <ul key={index} className="list-disc list-inside mb-6 space-y-2">
+            {items.map((item, i) => (
+              <li key={i} className="leading-relaxed">
+                {formatInlineMarkdown(item.replace(/^[\-\+]\s/, ''))}
+              </li>
+            ))}
+          </ul>
         );
       }
       return (
         <p key={index} className="mb-6 leading-relaxed">
-          {paragraph}
+          {formatInlineMarkdown(paragraph)}
         </p>
       );
     });
