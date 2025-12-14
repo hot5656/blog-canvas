@@ -21,9 +21,10 @@ serve(async (req) => {
     const formData = await req.formData();
     
     const title = formData.get('title') as string;
-    const content = formData.get('content') as string;
-    const excerpt = formData.get('excerpt') as string || '';
+    let content = formData.get('content') as string;
+    let excerpt = formData.get('excerpt') as string || '';
     const authorName = formData.get('author_name') as string || 'Anonymous';
+    const authorAvatar = formData.get('author_avatar') as string || '';
     const tagsString = formData.get('tags') as string || '';
     const imageFile = formData.get('image') as File | null;
 
@@ -33,6 +34,10 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Convert literal \n strings to actual newlines
+    content = content.replace(/\\n/g, '\n');
+    excerpt = excerpt.replace(/\\n/g, '\n');
 
     let featuredImageUrl = '/placeholder.svg';
 
@@ -72,7 +77,22 @@ serve(async (req) => {
     const wordCount = content.split(/\s+/).length;
     const readTime = `${Math.max(1, Math.ceil(wordCount / 200))} min read`;
 
-    // Insert post
+    // Build author avatar URL if filename provided
+    let authorAvatarUrl = '/placeholder.svg';
+    if (authorAvatar) {
+      // If it's already a full URL, use it directly
+      if (authorAvatar.startsWith('http://') || authorAvatar.startsWith('https://')) {
+        authorAvatarUrl = authorAvatar;
+      } else {
+        // Otherwise, construct URL from author-avatars bucket
+        const { data: avatarUrlData } = supabase.storage
+          .from('author-avatars')
+          .getPublicUrl(authorAvatar);
+        authorAvatarUrl = avatarUrlData.publicUrl;
+      }
+    }
+
+    // Insert post with status='draft' for n8n posts
     const { data: post, error: insertError } = await supabase
       .from('posts')
       .insert({
@@ -81,10 +101,11 @@ serve(async (req) => {
         excerpt,
         featured_image: featuredImageUrl,
         author_name: authorName,
-        author_avatar: '/placeholder.svg',
+        author_avatar: authorAvatarUrl,
         date: new Date().toISOString().split('T')[0],
         read_time: readTime,
-        tags
+        tags,
+        status: 'draft'  // n8n posts are drafts by default
       })
       .select()
       .single();
@@ -97,7 +118,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Post created successfully:', post.id);
+    console.log('Post created successfully as draft:', post.id);
 
     return new Response(
       JSON.stringify({ success: true, post }),

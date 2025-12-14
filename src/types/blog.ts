@@ -1,3 +1,5 @@
+export type PostStatus = 'draft' | 'published';
+
 export interface BlogPost {
   id: string;
   title: string;
@@ -11,4 +13,5 @@ export interface BlogPost {
   date: string;
   readTime: string;
   tags: string[];
+  status: PostStatus;
 }

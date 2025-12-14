@@ -1,75 +1,61 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { BlogPost } from "@/types/blog";
+import { BlogPost, PostStatus } from "@/types/blog";
 
-interface AddPostModalProps {
+interface EditPostModalProps {
   isOpen: boolean;
+  post: BlogPost | null;
   onClose: () => void;
-  onAdd: (post: Omit<BlogPost, "id">) => void;
+  onSave: (id: string, updates: Partial<Omit<BlogPost, "id">>) => void;
 }
 
-const unsplashImages = [
-  "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=1200&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=1200&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200&auto=format&fit=crop&q=80",
-];
-
-const authorAvatars = [
-  "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1599566150163-29194dcabd36?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150&auto=format&fit=crop&q=80",
-];
-
-const AddPostModal = ({ isOpen, onClose, onAdd }: AddPostModalProps) => {
+const EditPostModal = ({ isOpen, post, onClose, onSave }: EditPostModalProps) => {
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [content, setContent] = useState("");
   const [authorName, setAuthorName] = useState("");
   const [tags, setTags] = useState("");
+  const [status, setStatus] = useState<PostStatus>("draft");
+
+  useEffect(() => {
+    if (post) {
+      setTitle(post.title);
+      setExcerpt(post.excerpt);
+      setContent(post.content);
+      setAuthorName(post.author.name);
+      setTags(post.tags.join(", "));
+      setStatus(post.status);
+    }
+  }, [post]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!post) return;
     
     const wordCount = content.split(/\s+/).length;
     const readTime = `${Math.max(1, Math.ceil(wordCount / 200))} min read`;
     
-    const newPost: Omit<BlogPost, "id"> = {
+    onSave(post.id, {
       title,
       excerpt,
       content,
-      featuredImage: unsplashImages[Math.floor(Math.random() * unsplashImages.length)],
       author: {
         name: authorName,
-        avatar: authorAvatars[Math.floor(Math.random() * authorAvatars.length)]
+        avatar: post.author.avatar,
       },
-      date: new Date().toLocaleDateString("en-US", { 
-        year: "numeric", 
-        month: "long", 
-        day: "numeric" 
-      }),
       readTime,
       tags: tags.split(",").map(tag => tag.trim()).filter(Boolean),
-      status: "published"
-    };
+      status,
+    });
     
-    onAdd(newPost);
-    
-    // Reset form
-    setTitle("");
-    setExcerpt("");
-    setContent("");
-    setAuthorName("");
-    setTags("");
     onClose();
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !post) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -79,7 +65,7 @@ const AddPostModal = ({ isOpen, onClose, onAdd }: AddPostModalProps) => {
       />
       <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-card shadow-elevated animate-scale-in">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card px-6 py-4">
-          <h2 className="font-serif text-xl font-semibold">Create New Post</h2>
+          <h2 className="font-serif text-xl font-semibold">Edit Post</h2>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-5 w-5" />
           </Button>
@@ -87,9 +73,9 @@ const AddPostModal = ({ isOpen, onClose, onAdd }: AddPostModalProps) => {
         
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
+            <Label htmlFor="edit-title">Title</Label>
             <Input
-              id="title"
+              id="edit-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter a captivating title..."
@@ -99,9 +85,9 @@ const AddPostModal = ({ isOpen, onClose, onAdd }: AddPostModalProps) => {
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="excerpt">Excerpt</Label>
+            <Label htmlFor="edit-excerpt">Excerpt</Label>
             <Textarea
-              id="excerpt"
+              id="edit-excerpt"
               value={excerpt}
               onChange={(e) => setExcerpt(e.target.value)}
               placeholder="A brief summary that appears on the homepage..."
@@ -111,9 +97,9 @@ const AddPostModal = ({ isOpen, onClose, onAdd }: AddPostModalProps) => {
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="content">Content</Label>
+            <Label htmlFor="edit-content">Content</Label>
             <Textarea
-              id="content"
+              id="edit-content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Write your story... (Supports markdown-style formatting)"
@@ -125,9 +111,9 @@ const AddPostModal = ({ isOpen, onClose, onAdd }: AddPostModalProps) => {
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="author">Author Name</Label>
+              <Label htmlFor="edit-author">Author Name</Label>
               <Input
-                id="author"
+                id="edit-author"
                 value={authorName}
                 onChange={(e) => setAuthorName(e.target.value)}
                 placeholder="Your name"
@@ -136,26 +122,50 @@ const AddPostModal = ({ isOpen, onClose, onAdd }: AddPostModalProps) => {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="tags">Tags</Label>
+              <Label htmlFor="edit-tags">Tags</Label>
               <Input
-                id="tags"
+                id="edit-tags"
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
                 placeholder="Design, Tech, Life (comma separated)"
               />
             </div>
           </div>
-          
-          <p className="text-xs text-muted-foreground">
-            A random featured image from Unsplash will be assigned to your post.
-          </p>
+
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="status"
+                  value="draft"
+                  checked={status === "draft"}
+                  onChange={() => setStatus("draft")}
+                  className="w-4 h-4 text-primary"
+                />
+                <span className="text-sm">Draft</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="status"
+                  value="published"
+                  checked={status === "published"}
+                  onChange={() => setStatus("published")}
+                  className="w-4 h-4 text-primary"
+                />
+                <span className="text-sm">Published</span>
+              </label>
+            </div>
+          </div>
           
           <div className="flex gap-3 pt-4">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">
               Cancel
             </Button>
             <Button type="submit" className="flex-1">
-              Publish Post
+              Save Changes
             </Button>
           </div>
         </form>
@@ -164,4 +174,4 @@ const AddPostModal = ({ isOpen, onClose, onAdd }: AddPostModalProps) => {
   );
 };
 
-export default AddPostModal;
+export default EditPostModal;

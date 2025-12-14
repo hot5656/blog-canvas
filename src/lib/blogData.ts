@@ -35,7 +35,8 @@ These micro-moments of awareness, accumulated throughout the day, can fundamenta
     },
     date: "December 10, 2024",
     readTime: "6 min read",
-    tags: ["Mindfulness", "Digital Wellness", "Lifestyle"]
+    tags: ["Mindfulness", "Digital Wellness", "Lifestyle"],
+    status: "published"
   },
   {
     id: "2",
@@ -69,7 +70,8 @@ These considerations, once dismissed as secondary to aesthetic or structural con
     },
     date: "December 8, 2024",
     readTime: "8 min read",
-    tags: ["Architecture", "Sustainability", "Design"]
+    tags: ["Architecture", "Sustainability", "Design"],
+    status: "published"
   },
   {
     id: "3",
@@ -103,7 +105,8 @@ In our age of solo eating, meal delivery apps, and "efficient" nutrition, this r
     },
     date: "December 5, 2024",
     readTime: "7 min read",
-    tags: ["Food", "Culture", "Sustainability"]
+    tags: ["Food", "Culture", "Sustainability"],
+    status: "published"
   },
   {
     id: "4",
@@ -137,7 +140,8 @@ The good news is that unlike many environmental problems, light pollution is imm
     },
     date: "December 2, 2024",
     readTime: "5 min read",
-    tags: ["Environment", "Science", "Community"]
+    tags: ["Environment", "Science", "Community"],
+    status: "published"
   },
   {
     id: "5",
@@ -171,7 +175,8 @@ The page becomes a space for exploration rather than performance. Mistakes becom
     },
     date: "November 28, 2024",
     readTime: "6 min read",
-    tags: ["Writing", "Creativity", "Wellness"]
+    tags: ["Writing", "Creativity", "Wellness"],
+    status: "published"
   }
 ];
 
