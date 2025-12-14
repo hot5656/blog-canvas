@@ -117,16 +117,22 @@ const BlogPost = () => {
           </blockquote>
         );
       }
-      // Handle list items (- or +)
-      if (paragraph.match(/^[\-\+]\s/m)) {
-        const items = paragraph.split('\n').filter(line => line.match(/^[\-\+]\s/));
+      // Handle list items (- or +), including nested/indented items
+      if (paragraph.match(/^[\s]*[\-\+]\s/m)) {
+        const lines = paragraph.split('\n').filter(line => line.match(/^[\s]*[\-\+]\s/));
         return (
-          <ul key={index} className="list-disc list-inside mb-6 space-y-2">
-            {items.map((item, i) => (
-              <li key={i} className="leading-relaxed">
-                {formatInlineMarkdown(item.replace(/^[\-\+]\s/, ''))}
-              </li>
-            ))}
+          <ul key={index} className="list-disc mb-6 space-y-2 pl-6">
+            {lines.map((item, i) => {
+              // Count leading spaces to determine nesting level
+              const leadingSpaces = item.match(/^(\s*)/)?.[1]?.length || 0;
+              const nestLevel = Math.floor(leadingSpaces / 4); // 4 spaces = 1 level
+              const content = item.replace(/^[\s]*[\-\+]\s/, '');
+              return (
+                <li key={i} className="leading-relaxed" style={{ marginLeft: `${nestLevel * 1.5}rem` }}>
+                  {formatInlineMarkdown(content)}
+                </li>
+              );
+            })}
           </ul>
         );
       }
