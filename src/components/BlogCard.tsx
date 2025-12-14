@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Trash2, Pencil } from "lucide-react";
 import { BlogPost } from "@/types/blog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 
 interface BlogCardProps {
   post: BlogPost;
@@ -13,10 +15,17 @@ interface BlogCardProps {
 }
 
 const BlogCard = ({ post, onDelete, onEdit, featured = false, index = 0 }: BlogCardProps) => {
-  const handleDelete = (e: React.MouseEvent) => {
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
     onDelete(post.id);
+    setIsDeleteDialogOpen(false);
   };
 
   const handleEdit = (e: React.MouseEvent) => {
@@ -91,7 +100,7 @@ const BlogCard = ({ post, onDelete, onEdit, featured = false, index = 0 }: BlogC
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={handleDelete}
+                    onClick={handleDeleteClick}
                     className="opacity-0 group-hover:opacity-100 transition-base hover:bg-destructive/10 hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -101,6 +110,13 @@ const BlogCard = ({ post, onDelete, onEdit, featured = false, index = 0 }: BlogC
             </div>
           </div>
         </Link>
+        <DeleteConfirmDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={() => setIsDeleteDialogOpen(false)}
+          onConfirm={handleConfirmDelete}
+          authorName={post.author.name}
+          postTitle={post.title}
+        />
       </article>
     );
   }
@@ -135,7 +151,7 @@ const BlogCard = ({ post, onDelete, onEdit, featured = false, index = 0 }: BlogC
             <Button
               variant="ghost"
               size="icon"
-              onClick={handleDelete}
+              onClick={handleDeleteClick}
               className="bg-card/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-base hover:bg-destructive hover:text-destructive-foreground"
             >
               <Trash2 className="h-4 w-4" />
@@ -174,6 +190,13 @@ const BlogCard = ({ post, onDelete, onEdit, featured = false, index = 0 }: BlogC
           </div>
         </div>
       </Link>
+      <DeleteConfirmDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        authorName={post.author.name}
+        postTitle={post.title}
+      />
     </article>
   );
 };
