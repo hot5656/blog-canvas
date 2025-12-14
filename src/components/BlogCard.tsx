@@ -12,9 +12,10 @@ interface BlogCardProps {
   onEdit: (post: BlogPost) => void;
   featured?: boolean;
   index?: number;
+  showAdminActions?: boolean;
 }
 
-const BlogCard = ({ post, onDelete, onEdit, featured = false, index = 0 }: BlogCardProps) => {
+const BlogCard = ({ post, onDelete, onEdit, featured = false, index = 0, showAdminActions = false }: BlogCardProps) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const handleDeleteClick = (e: React.MouseEvent) => {
@@ -88,24 +89,26 @@ const BlogCard = ({ post, onDelete, onEdit, featured = false, index = 0 }: BlogC
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleEdit}
-                    className="opacity-0 group-hover:opacity-100 transition-base hover:bg-primary/10 hover:text-primary"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleDeleteClick}
-                    className="opacity-0 group-hover:opacity-100 transition-base hover:bg-destructive/10 hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                {showAdminActions && (
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleEdit}
+                      className="opacity-0 group-hover:opacity-100 transition-base hover:bg-primary/10 hover:text-primary"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleDeleteClick}
+                      className="opacity-0 group-hover:opacity-100 transition-base hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -139,24 +142,26 @@ const BlogCard = ({ post, onDelete, onEdit, featured = false, index = 0 }: BlogC
               Draft
             </Badge>
           )}
-          <div className="absolute top-3 right-3 flex gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleEdit}
-              className="bg-card/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-base hover:bg-primary hover:text-primary-foreground"
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleDeleteClick}
-              className="bg-card/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-base hover:bg-destructive hover:text-destructive-foreground"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
+          {showAdminActions && (
+            <div className="absolute top-3 right-3 flex gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleEdit}
+                className="bg-card/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-base hover:bg-primary hover:text-primary-foreground"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleDeleteClick}
+                className="bg-card/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-base hover:bg-destructive hover:text-destructive-foreground"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
         <div className="p-5">
           <div className="flex flex-wrap gap-2 mb-3">

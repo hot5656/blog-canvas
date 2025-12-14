@@ -6,6 +6,7 @@ import BlogCard from "@/components/BlogCard";
 import AddPostModal from "@/components/AddPostModal";
 import EditPostModal from "@/components/EditPostModal";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -14,6 +15,7 @@ const Index = () => {
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     loadPosts();
@@ -91,7 +93,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header onAddPost={() => setIsModalOpen(true)} />
+      <Header onAddPost={isAdmin ? () => setIsModalOpen(true) : undefined} />
       
       <main className="container mx-auto px-4 py-12 md:px-6">
         {/* Hero Section */}
@@ -120,12 +122,13 @@ const Index = () => {
                   </span>
                   <div className="h-px flex-1 bg-border" />
                 </div>
-                <BlogCard 
+              <BlogCard 
                   post={featuredPost} 
                   onDelete={handleDeletePost}
                   onEdit={handleEditPost}
                   featured 
                   index={0}
+                  showAdminActions={isAdmin}
                 />
               </section>
             )}
@@ -148,6 +151,7 @@ const Index = () => {
                       onDelete={handleDeletePost}
                       onEdit={handleEditPost}
                       index={index + 1}
+                      showAdminActions={isAdmin}
                     />
                   ))}
                 </div>
@@ -157,14 +161,16 @@ const Index = () => {
             {posts.length === 0 && (
               <div className="text-center py-20 animate-fade-in">
                 <p className="text-muted-foreground text-lg mb-4">
-                  No posts yet. Start writing your first story!
+                  {isAdmin ? 'No posts yet. Start writing your first story!' : 'No posts yet. Check back later!'}
                 </p>
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="text-primary font-medium hover:underline underline-offset-4"
-                >
-                  Create your first post →
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="text-primary font-medium hover:underline underline-offset-4"
+                  >
+                    Create your first post →
+                  </button>
+                )}
               </div>
             )}
           </>
