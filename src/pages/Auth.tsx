@@ -14,14 +14,16 @@ const authSchema = z.object({
   password: z.string().min(6, { message: '密碼至少需要 6 個字元' }),
 });
 
+type AuthMode = 'login' | 'signup' | 'forgot';
+
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
-  const { signIn, signUp, user, isLoading } = useAuth();
+  const { signIn, signUp, resetPassword, user, isLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -33,14 +35,18 @@ const Auth = () => {
 
   const validateForm = () => {
     try {
-      authSchema.parse({ email, password });
+      if (mode === 'forgot') {
+        z.string().trim().email({ message: '請輸入有效的電子郵件地址' }).parse(email);
+      } else {
+        authSchema.parse({ email, password });
+      }
       setErrors({});
       return true;
     } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: { email?: string; password?: string } = {};
         error.errors.forEach((err) => {
-          if (err.path[0] === 'email') fieldErrors.email = err.message;
+          if (err.path[0] === 'email' || err.path.length === 0) fieldErrors.email = err.message;
           if (err.path[0] === 'password') fieldErrors.password = err.message;
         });
         setErrors(fieldErrors);
@@ -57,7 +63,22 @@ const Auth = () => {
     setIsSubmitting(true);
 
     try {
-      if (isLogin) {
+      if (mode === 'forgot') {
+        const { error } = await resetPassword(email);
+        if (error) {
+          toast({
+            title: '發送失敗',
+            description: error.message,
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: '重設郵件已發送',
+            description: '請檢查您的電子郵件以重設密碼。',
+          });
+          setMode('login');
+        }
+      } else if (mode === 'login') {
         const { error } = await signIn(email, password);
         if (error) {
           if (error.message.includes('Invalid login credentials')) {
@@ -133,12 +154,14 @@ const Auth = () => {
         <Card className="shadow-elevated">
           <CardHeader className="text-center">
             <CardTitle className="font-serif text-2xl">
-              {isLogin ? '歡迎回來' : '建立帳號'}
+              {mode === 'login' ? '歡迎回來' : mode === 'signup' ? '建立帳號' : '忘記密碼'}
             </CardTitle>
             <CardDescription>
-              {isLogin
+              {mode === 'login'
                 ? '登入以管理您的部落格'
-                : '註冊新帳號以開始使用'}
+                : mode === 'signup'
+                ? '註冊新帳號以開始使用'
+                : '輸入您的電子郵件以重設密碼'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -158,20 +181,22 @@ const Auth = () => {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">密碼</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isSubmitting}
-                />
-                {errors.password && (
-                  <p className="text-sm text-destructive">{errors.password}</p>
-                )}
-              </div>
+              {mode !== 'forgot' && (
+                <div className="space-y-2">
+                  <Label htmlFor="password">密碼</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isSubmitting}
+                  />
+                  {errors.password && (
+                    <p className="text-sm text-destructive">{errors.password}</p>
+                  )}
+                </div>
+              )}
 
               <Button
                 type="submit"
@@ -183,28 +208,60 @@ const Auth = () => {
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     處理中...
                   </>
-                ) : isLogin ? (
+                ) : mode === 'login' ? (
                   '登入'
-                ) : (
+                ) : mode === 'signup' ? (
                   '註冊'
+                ) : (
+                  '發送重設郵件'
                 )}
               </Button>
             </form>
 
-            <div className="mt-6 text-center text-sm">
-              <span className="text-muted-foreground">
-                {isLogin ? '還沒有帳號？' : '已經有帳號？'}
-              </span>{' '}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsLogin(!isLogin);
-                  setErrors({});
-                }}
-                className="text-primary font-medium hover:underline underline-offset-4"
-              >
-                {isLogin ? '立即註冊' : '立即登入'}
-              </button>
+            {mode === 'login' && (
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('forgot');
+                    setErrors({});
+                  }}
+                  className="text-sm text-muted-foreground hover:text-primary hover:underline underline-offset-4"
+                >
+                  忘記密碼？
+                </button>
+              </div>
+            )}
+
+            <div className="mt-4 text-center text-sm">
+              {mode === 'forgot' ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('login');
+                    setErrors({});
+                  }}
+                  className="text-primary font-medium hover:underline underline-offset-4"
+                >
+                  返回登入
+                </button>
+              ) : (
+                <>
+                  <span className="text-muted-foreground">
+                    {mode === 'login' ? '還沒有帳號？' : '已經有帳號？'}
+                  </span>{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode(mode === 'login' ? 'signup' : 'login');
+                      setErrors({});
+                    }}
+                    className="text-primary font-medium hover:underline underline-offset-4"
+                  >
+                    {mode === 'login' ? '立即註冊' : '立即登入'}
+                  </button>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
