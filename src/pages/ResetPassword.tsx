@@ -27,18 +27,26 @@ const ResetPassword = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Check if URL contains recovery token in hash
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const type = hashParams.get('type');
+    const accessToken = hashParams.get('access_token');
+    
+    // If no recovery token in URL, redirect to auth page
+    if (type !== 'recovery' && !accessToken) {
+      toast({
+        title: '請從郵件中的連結進入',
+        description: '如需重設密碼，請點擊郵件中的重設連結。',
+        variant: 'destructive',
+      });
+      navigate('/auth');
+      return;
+    }
+
     // Listen for PASSWORD_RECOVERY event from Supabase
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
-        // Token is valid, user can now reset password
-        console.log('Password recovery event received');
-      } else if (event === 'SIGNED_IN' && !session) {
-        toast({
-          title: '連結無效或已過期',
-          description: '請重新申請密碼重設。',
-          variant: 'destructive',
-        });
-        navigate('/auth');
+        console.log('Password recovery token validated');
       }
     });
 
