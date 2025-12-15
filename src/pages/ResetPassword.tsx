@@ -27,10 +27,12 @@ const ResetPassword = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if we have a valid session from the reset link
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+    // Listen for PASSWORD_RECOVERY event from Supabase
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        // Token is valid, user can now reset password
+        console.log('Password recovery event received');
+      } else if (event === 'SIGNED_IN' && !session) {
         toast({
           title: '連結無效或已過期',
           description: '請重新申請密碼重設。',
@@ -38,8 +40,9 @@ const ResetPassword = () => {
         });
         navigate('/auth');
       }
-    };
-    checkSession();
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate, toast]);
 
   const validateForm = () => {
