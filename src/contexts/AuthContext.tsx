@@ -83,9 +83,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
     );
 
-    // Check if we're on reset-password page with recovery token
+    // Check if we're in a recovery flow (on ANY page, not just /reset-password)
     const isRecoveryFlow = 
-      window.location.pathname === '/reset-password' && 
       window.location.hash.includes('type=recovery') && 
       window.location.hash.includes('access_token');
 
