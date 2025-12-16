@@ -58,6 +58,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('Auth event:', event, 'Session:', session ? 'exists' : 'null');
+        
+        // Explicitly handle SIGNED_OUT event
+        if (event === 'SIGNED_OUT') {
+          console.log('User signed out, clearing state');
+          setSession(null);
+          setUser(null);
+          setIsAdmin(false);
+          return;
+        }
+        
         setSession(session);
         setUser(session?.user ?? null);
 
@@ -112,10 +123,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    setIsAdmin(false);
+    console.log('Signing out...');
+    try {
+      // Use 'global' scope to ensure all sessions are logged out
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      
+      if (error) {
+        console.error('Sign out error:', error);
+      } else {
+        console.log('Sign out successful');
+      }
+    } catch (error) {
+      console.error('Sign out exception:', error);
+    } finally {
+      // Ensure local state is cleared even if API fails
+      setUser(null);
+      setSession(null);
+      setIsAdmin(false);
+    }
   };
 
   const resetPassword = async (email: string) => {
