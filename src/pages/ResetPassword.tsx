@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,36 +26,57 @@ const ResetPassword = () => {
   const [isProcessing, setIsProcessing] = useState(true);
   const [isRecoveryReady, setIsRecoveryReady] = useState(false);
   const [errors, setErrors] = useState<{ password?: string; confirmPassword?: string }>({});
+  const recoveryReadyRef = useRef(false);
 
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    const handleRecoverySession = async () => {
-      const url = new URL(window.location.href);
-      const hashParams = new URLSearchParams(url.hash.startsWith("#") ? url.hash.slice(1) : url.hash);
-      const searchParams = url.searchParams;
+    // Check for OAuth errors in URL
+    const url = new URL(window.location.href);
+    const hashParams = new URLSearchParams(url.hash.startsWith("#") ? url.hash.slice(1) : url.hash);
+    const searchParams = url.searchParams;
 
-      const type = hashParams.get("type") ?? searchParams.get("type");
-      const accessToken = hashParams.get("access_token") ?? searchParams.get("access_token");
-      const refreshToken = hashParams.get("refresh_token") ?? searchParams.get("refresh_token");
-      const tokenHash = hashParams.get("token_hash") ?? searchParams.get("token_hash");
+    const oauthError = hashParams.get("error") ?? searchParams.get("error");
 
-      const oauthError = hashParams.get("error") ?? searchParams.get("error");
-      const oauthErrorDescription =
-        hashParams.get("error_description") ?? searchParams.get("error_description");
+    if (oauthError) {
+      setIsProcessing(false);
+      toast({
+        title: "連結無效或已過期",
+        description: "請重新申請密碼重設。",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
 
-      if (import.meta.env.DEV) {
-        console.log("ResetPassword: recovery params", {
-          type,
-          hasAccessToken: !!accessToken,
-          hasRefreshToken: !!refreshToken,
-          hasTokenHash: !!tokenHash,
-          oauthError,
-        });
+    // Listen for auth events - Supabase will automatically process the recovery token
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('ResetPassword auth event:', event, session ? 'has session' : 'no session');
+      
+      if (event === 'PASSWORD_RECOVERY') {
+        // Supabase has validated the token - user can reset password
+        console.log('PASSWORD_RECOVERY event received');
+        recoveryReadyRef.current = true;
+        setIsRecoveryReady(true);
+        setIsProcessing(false);
+      } else if (event === 'SIGNED_IN' && session) {
+        // Sometimes SIGNED_IN fires instead of PASSWORD_RECOVERY
+        // Check if we're on a recovery URL
+        const isRecoveryUrl = window.location.hash.includes('type=recovery') || 
+                             window.location.search.includes('type=recovery');
+        if (isRecoveryUrl && !recoveryReadyRef.current) {
+          console.log('SIGNED_IN with recovery URL detected');
+          recoveryReadyRef.current = true;
+          setIsRecoveryReady(true);
+          setIsProcessing(false);
+        }
       }
+    });
 
-      if (oauthError || oauthErrorDescription) {
+    // Set timeout - if no event received in 5 seconds, show error
+    const timeout = setTimeout(() => {
+      if (!recoveryReadyRef.current) {
         setIsProcessing(false);
         toast({
           title: "連結無效或已過期",
@@ -63,90 +84,13 @@ const ResetPassword = () => {
           variant: "destructive",
         });
         navigate("/auth");
-        return;
       }
+    }, 5000);
 
-      // Must be recovery flow
-      if (type !== "recovery") {
-        setIsProcessing(false);
-        toast({
-          title: "請從郵件中的連結進入",
-          description: "如需重設密碼，請點擊郵件中的重設連結。",
-          variant: "destructive",
-        });
-        navigate("/auth");
-        return;
-      }
-
-      // Clear any existing session first (local only to not affect other tabs)
-      await supabase.auth.signOut({ scope: "local" });
-
-      // Flow A: access_token/refresh_token in URL fragment
-      if (accessToken && refreshToken) {
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-
-        if (error) {
-          if (import.meta.env.DEV) console.error("Failed to set recovery session:", error);
-          setIsProcessing(false);
-          toast({
-            title: "連結無效或已過期",
-            description: error.message || "請重新申請密碼重設。",
-            variant: "destructive",
-          });
-          navigate("/auth");
-          return;
-        }
-
-        setIsRecoveryReady(true);
-        setIsProcessing(false);
-        return;
-      }
-
-      // Flow B: token_hash based recovery links (newer templates)
-      if (tokenHash) {
-        const { error } = await supabase.auth.verifyOtp({
-          type: "recovery",
-          token_hash: tokenHash,
-        });
-
-        if (error) {
-          if (import.meta.env.DEV) console.error("Failed to verify recovery token_hash:", error);
-          setIsProcessing(false);
-          toast({
-            title: "連結無效或已過期",
-            description: error.message || "請重新申請密碼重設。",
-            variant: "destructive",
-          });
-          navigate("/auth");
-          return;
-        }
-
-        setIsRecoveryReady(true);
-        setIsProcessing(false);
-        return;
-      }
-
-      // No usable tokens
-      setIsProcessing(false);
-      toast({
-        title: "請從郵件中的連結進入",
-        description: "如需重設密碼，請點擊郵件中的重設連結。",
-        variant: "destructive",
-      });
-      navigate("/auth");
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
     };
-
-    handleRecoverySession();
-
-    // Listen for auth events
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      console.log('ResetPassword auth event:', event);
-    });
-
-    return () => subscription.unsubscribe();
   }, [navigate, toast]);
 
   const validateForm = () => {
