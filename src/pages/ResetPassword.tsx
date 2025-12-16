@@ -23,25 +23,19 @@ const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSessionReady, setIsSessionReady] = useState(false);
-  const [errors, setErrors] = useState<{
-    password?: string;
-    confirmPassword?: string;
-  }>({});
+  const [errors, setErrors] = useState<{ password?: string; confirmPassword?: string }>({});
 
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // 1. 進頁面時解析 URL hash，並用 access_token / refresh_token 建立 session
   useEffect(() => {
-    const hash = window.location.hash.startsWith("#") ? window.location.hash.substring(1) : window.location.hash;
-
-    const hashParams = new URLSearchParams(hash);
+    // Check if URL contains recovery token in hash
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const type = hashParams.get("type");
     const accessToken = hashParams.get("access_token");
-    const refreshToken = hashParams.get("refresh_token");
 
-    if (type !== "recovery" || !accessToken || !refreshToken) {
+    // If no recovery token in URL, redirect to auth page
+    if (type !== "recovery" && !accessToken) {
       toast({
         title: "請從郵件中的連結進入",
         description: "如需重設密碼，請點擊郵件中的重設連結。",
@@ -51,27 +45,7 @@ const ResetPassword = () => {
       return;
     }
 
-    const initSession = async () => {
-      const { error } = await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
-
-      if (error) {
-        toast({
-          title: "連結已失效或無效",
-          description: error.message,
-          variant: "destructive",
-        });
-        navigate("/auth");
-        return;
-      }
-
-      setIsSessionReady(true);
-    };
-
-    initSession();
-
+    // Listen for PASSWORD_RECOVERY event from Supabase
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
@@ -80,9 +54,7 @@ const ResetPassword = () => {
       }
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, [navigate, toast]);
 
   const validateForm = () => {
@@ -105,17 +77,11 @@ const ResetPassword = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isSessionReady) {
-      toast({
-        title: "連結尚未驗證完成",
-        description: "請稍候片刻再試一次。",
-        variant: "destructive",
-      });
-      return;
-    }
+
     if (!validateForm()) return;
 
     setIsSubmitting(true);
+
     try {
       const { error } = await supabase.auth.updateUser({ password });
 
@@ -139,67 +105,74 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 px-4 py-8">
-      <Card className="w-full max-w-md border-slate-800 bg-slate-900/70 text-slate-100 shadow-2xl backdrop-blur-xl">
-        <CardHeader className="space-y-3">
-          <div className="inline-flex items-center gap-2 rounded-full bg-slate-800/80 px-3 py-1 text-xs font-medium text-slate-300">
-            <PenLine className="h-4 w-4 text-emerald-400" />
-            安全密碼重設
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <div className="w-full max-w-md animate-fade-in">
+        <div className="flex justify-center mb-8">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <PenLine className="h-5 w-5" />
+            </div>
+            <span className="font-serif text-2xl font-semibold tracking-tight">The Journal</span>
           </div>
-          <CardTitle className="text-2xl font-semibold tracking-tight">重設你的密碼</CardTitle>
-          <CardDescription className="text-sm text-slate-300">
-            請輸入新密碼，並妥善保管。系統將會自動更新並登出所有已登入裝置。
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="password">新密碼</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="請輸入至少 6 個字元的安全密碼"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="border-slate-700 bg-slate-900/60 text-slate-100 placeholder:text-slate-500 focus-visible:ring-emerald-500"
-              />
-              {errors.password && <p className="text-xs text-red-400">{errors.password}</p>}
+        </div>
+
+        <Card className="shadow-elevated">
+          <CardHeader className="text-center">
+            <CardTitle className="font-serif text-2xl">重設密碼</CardTitle>
+            <CardDescription>請輸入您的新密碼</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="password">新密碼</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isSubmitting}
+                />
+                {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">確認新密碼</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={isSubmitting}
+                />
+                {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
+              </div>
+
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    處理中...
+                  </>
+                ) : (
+                  "重設密碼"
+                )}
+              </Button>
+            </form>
+
+            <div className="mt-6 text-center text-sm">
+              <button
+                type="button"
+                onClick={() => navigate("/auth")}
+                className="text-primary font-medium hover:underline underline-offset-4"
+              >
+                返回登入
+              </button>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">確認新密碼</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="再輸入一次新密碼"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="border-slate-700 bg-slate-900/60 text-slate-100 placeholder:text-slate-500 focus-visible:ring-emerald-500"
-              />
-              {errors.confirmPassword && <p className="text-xs text-red-400">{errors.confirmPassword}</p>}
-            </div>
-
-            <Button
-              type="submit"
-              className="flex w-full items-center justify-center gap-2 bg-emerald-500 text-emerald-950 hover:bg-emerald-400"
-              disabled={isSubmitting || !isSessionReady}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  送出中…
-                </>
-              ) : (
-                "更新密碼並登入"
-              )}
-            </Button>
-
-            <p className="mt-2 text-center text-xs text-slate-400">
-              若你並未請求重設密碼，請立即重新登入並變更帳號安全設定。
-            </p>
-          </form>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
