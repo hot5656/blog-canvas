@@ -29,29 +29,56 @@ const ResetPassword = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if URL contains recovery token in hash
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const type = hashParams.get("type");
-    const accessToken = hashParams.get("access_token");
+    const handleRecoverySession = async () => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const type = hashParams.get("type");
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
 
-    // If no recovery token in URL, redirect to auth page
-    if (type !== "recovery" && !accessToken) {
-      toast({
-        title: "請從郵件中的連結進入",
-        description: "如需重設密碼，請點擊郵件中的重設連結。",
-        variant: "destructive",
-      });
-      navigate("/auth");
-      return;
-    }
+      console.log('ResetPassword: type =', type, 'hasAccessToken =', !!accessToken);
 
-    // Listen for PASSWORD_RECOVERY event from Supabase
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        console.log("Password recovery token validated");
+      // If no recovery token in URL, redirect to auth page
+      if (type !== "recovery" || !accessToken) {
+        toast({
+          title: "請從郵件中的連結進入",
+          description: "如需重設密碼，請點擊郵件中的重設連結。",
+          variant: "destructive",
+        });
+        navigate("/auth");
+        return;
       }
+
+      // Clear any existing session first (local only to not affect other tabs)
+      console.log('ResetPassword: Clearing existing local session...');
+      await supabase.auth.signOut({ scope: 'local' });
+
+      // Set the recovery session from URL tokens
+      if (accessToken && refreshToken) {
+        console.log('ResetPassword: Setting recovery session...');
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (error) {
+          console.error('Failed to set recovery session:', error);
+          toast({
+            title: "連結無效或已過期",
+            description: "請重新申請密碼重設。",
+            variant: "destructive",
+          });
+          navigate("/auth");
+        } else {
+          console.log('ResetPassword: Recovery session set successfully');
+        }
+      }
+    };
+
+    handleRecoverySession();
+
+    // Listen for auth events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      console.log('ResetPassword auth event:', event);
     });
 
     return () => subscription.unsubscribe();
