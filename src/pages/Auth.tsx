@@ -29,15 +29,18 @@ const Auth = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    const sp = new URLSearchParams(location.search);
+
     const hasRecoveryHash =
       location.hash.includes('type=recovery') && location.hash.includes('access_token');
+    const hasRecoveryQuery = sp.get('type') === 'recovery' && !!sp.get('token_hash');
 
-    if (hasRecoveryHash) return;
+    if (hasRecoveryHash || hasRecoveryQuery) return;
 
     if (user && !isLoading) {
       navigate('/');
     }
-  }, [user, isLoading, navigate, location.hash]);
+  }, [user, isLoading, navigate, location.hash, location.search]);
 
   const validateForm = () => {
     try {

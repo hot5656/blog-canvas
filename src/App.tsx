@@ -13,18 +13,37 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const isRecoveryHash = (hash: string) =>
-  hash.includes("type=recovery") && hash.includes("access_token");
+const isRecoveryLocation = (hash: string, search: string) => {
+  const hashIsRecovery =
+    hash.includes("type=recovery") &&
+    (hash.includes("access_token") || hash.includes("token_hash"));
+
+  const sp = new URLSearchParams(search);
+  const searchIsRecovery = sp.get("type") === "recovery" && !!sp.get("token_hash");
+
+  return hashIsRecovery || searchIsRecovery;
+};
 
 const RecoveryRedirector = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isRecoveryHash(location.hash) && location.pathname !== "/reset-password") {
-      navigate({ pathname: "/reset-password", hash: location.hash }, { replace: true });
+    if (
+      isRecoveryLocation(location.hash, location.search) &&
+      location.pathname !== "/reset-password"
+    ) {
+      navigate(
+        {
+          pathname: "/reset-password",
+          search: location.search,
+          hash: location.hash,
+        },
+        { replace: true }
+      );
     }
-  }, [location.hash, location.pathname, navigate]);
+  }, [location.hash, location.pathname, location.search, navigate]);
+
 
   return null;
 };

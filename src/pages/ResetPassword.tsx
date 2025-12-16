@@ -32,18 +32,42 @@ const ResetPassword = () => {
 
   useEffect(() => {
     const handleRecoverySession = async () => {
-      console.log('ResetPassword: Full URL =', window.location.href);
-      console.log('ResetPassword: Hash =', window.location.hash);
-      
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const type = hashParams.get("type");
-      const accessToken = hashParams.get("access_token");
-      const refreshToken = hashParams.get("refresh_token");
+      const url = new URL(window.location.href);
+      const hashParams = new URLSearchParams(url.hash.startsWith("#") ? url.hash.slice(1) : url.hash);
+      const searchParams = url.searchParams;
 
-      console.log('ResetPassword: type =', type, 'hasAccessToken =', !!accessToken);
+      const type = hashParams.get("type") ?? searchParams.get("type");
+      const accessToken = hashParams.get("access_token") ?? searchParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token") ?? searchParams.get("refresh_token");
+      const tokenHash = hashParams.get("token_hash") ?? searchParams.get("token_hash");
 
-      // If no recovery token in URL, redirect to auth page
-      if (type !== "recovery" || !accessToken) {
+      const oauthError = hashParams.get("error") ?? searchParams.get("error");
+      const oauthErrorDescription =
+        hashParams.get("error_description") ?? searchParams.get("error_description");
+
+      if (import.meta.env.DEV) {
+        console.log("ResetPassword: recovery params", {
+          type,
+          hasAccessToken: !!accessToken,
+          hasRefreshToken: !!refreshToken,
+          hasTokenHash: !!tokenHash,
+          oauthError,
+        });
+      }
+
+      if (oauthError || oauthErrorDescription) {
+        setIsProcessing(false);
+        toast({
+          title: "連結無效或已過期",
+          description: "請重新申請密碼重設。",
+          variant: "destructive",
+        });
+        navigate("/auth");
+        return;
+      }
+
+      // Must be recovery flow
+      if (type !== "recovery") {
         setIsProcessing(false);
         toast({
           title: "請從郵件中的連結進入",
@@ -55,34 +79,64 @@ const ResetPassword = () => {
       }
 
       // Clear any existing session first (local only to not affect other tabs)
-      console.log('ResetPassword: Clearing existing local session...');
-      await supabase.auth.signOut({ scope: 'local' });
+      await supabase.auth.signOut({ scope: "local" });
 
-      // Set the recovery session from URL tokens
+      // Flow A: access_token/refresh_token in URL fragment
       if (accessToken && refreshToken) {
-        console.log('ResetPassword: Setting recovery session...');
         const { error } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
         });
 
         if (error) {
-          console.error('Failed to set recovery session:', error);
+          if (import.meta.env.DEV) console.error("Failed to set recovery session:", error);
           setIsProcessing(false);
           toast({
             title: "連結無效或已過期",
-            description: "請重新申請密碼重設。",
+            description: error.message || "請重新申請密碼重設。",
             variant: "destructive",
           });
           navigate("/auth");
-        } else {
-          console.log('ResetPassword: Recovery session set successfully');
-          setIsRecoveryReady(true);
-          setIsProcessing(false);
+          return;
         }
-      } else {
+
+        setIsRecoveryReady(true);
         setIsProcessing(false);
+        return;
       }
+
+      // Flow B: token_hash based recovery links (newer templates)
+      if (tokenHash) {
+        const { error } = await supabase.auth.verifyOtp({
+          type: "recovery",
+          token_hash: tokenHash,
+        });
+
+        if (error) {
+          if (import.meta.env.DEV) console.error("Failed to verify recovery token_hash:", error);
+          setIsProcessing(false);
+          toast({
+            title: "連結無效或已過期",
+            description: error.message || "請重新申請密碼重設。",
+            variant: "destructive",
+          });
+          navigate("/auth");
+          return;
+        }
+
+        setIsRecoveryReady(true);
+        setIsProcessing(false);
+        return;
+      }
+
+      // No usable tokens
+      setIsProcessing(false);
+      toast({
+        title: "請從郵件中的連結進入",
+        description: "如需重設密碼，請點擊郵件中的重設連結。",
+        variant: "destructive",
+      });
+      navigate("/auth");
     };
 
     handleRecoverySession();
