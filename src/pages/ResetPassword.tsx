@@ -23,6 +23,8 @@ const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(true);
+  const [isRecoveryReady, setIsRecoveryReady] = useState(false);
   const [errors, setErrors] = useState<{ password?: string; confirmPassword?: string }>({});
 
   const navigate = useNavigate();
@@ -30,6 +32,9 @@ const ResetPassword = () => {
 
   useEffect(() => {
     const handleRecoverySession = async () => {
+      console.log('ResetPassword: Full URL =', window.location.href);
+      console.log('ResetPassword: Hash =', window.location.hash);
+      
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const type = hashParams.get("type");
       const accessToken = hashParams.get("access_token");
@@ -39,6 +44,7 @@ const ResetPassword = () => {
 
       // If no recovery token in URL, redirect to auth page
       if (type !== "recovery" || !accessToken) {
+        setIsProcessing(false);
         toast({
           title: "請從郵件中的連結進入",
           description: "如需重設密碼，請點擊郵件中的重設連結。",
@@ -62,6 +68,7 @@ const ResetPassword = () => {
 
         if (error) {
           console.error('Failed to set recovery session:', error);
+          setIsProcessing(false);
           toast({
             title: "連結無效或已過期",
             description: "請重新申請密碼重設。",
@@ -70,7 +77,11 @@ const ResetPassword = () => {
           navigate("/auth");
         } else {
           console.log('ResetPassword: Recovery session set successfully');
+          setIsRecoveryReady(true);
+          setIsProcessing(false);
         }
+      } else {
+        setIsProcessing(false);
       }
     };
 
@@ -130,6 +141,23 @@ const ResetPassword = () => {
       setIsSubmitting(false);
     }
   };
+
+  // Show loading while processing recovery token
+  if (isProcessing) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <div className="flex items-center gap-3">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <span className="text-muted-foreground">正在驗證重設連結...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't show form if recovery is not ready
+  if (!isRecoveryReady) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
