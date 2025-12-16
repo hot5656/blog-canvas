@@ -83,7 +83,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
     );
 
-    // THEN check for existing session
+    // Check if we're on reset-password page with recovery token
+    const isRecoveryFlow = 
+      window.location.pathname === '/reset-password' && 
+      window.location.hash.includes('type=recovery') && 
+      window.location.hash.includes('access_token');
+
+    if (isRecoveryFlow) {
+      // Skip session restoration - let ResetPassword handle it
+      console.log('AuthContext: Detected recovery flow, skipping session restoration');
+      setIsLoading(false);
+      return () => subscription.unsubscribe();
+    }
+
+    // Normal flow: check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
