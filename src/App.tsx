@@ -9,6 +9,7 @@ import BlogPost from "./pages/BlogPost";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import N8nChatWidget from "./components/N8nChatWidget";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        <N8nChatWidget />
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
