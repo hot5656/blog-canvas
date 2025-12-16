@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { z } from 'zod';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -25,13 +25,19 @@ const Auth = () => {
 
   const { signIn, signUp, resetPassword, user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   useEffect(() => {
+    const hasRecoveryHash =
+      location.hash.includes('type=recovery') && location.hash.includes('access_token');
+
+    if (hasRecoveryHash) return;
+
     if (user && !isLoading) {
       navigate('/');
     }
-  }, [user, isLoading, navigate]);
+  }, [user, isLoading, navigate, location.hash]);
 
   const validateForm = () => {
     try {
