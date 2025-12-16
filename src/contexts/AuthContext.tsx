@@ -84,9 +84,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     );
 
     // Check if we're in a recovery flow (on ANY page, not just /reset-password)
-    const isRecoveryFlow = 
-      window.location.hash.includes('type=recovery') && 
-      window.location.hash.includes('access_token');
+    const sp = new URLSearchParams(window.location.search);
+    const isRecoveryFlow =
+      (window.location.hash.includes('type=recovery') &&
+        (window.location.hash.includes('access_token') || window.location.hash.includes('token_hash'))) ||
+      (sp.get('type') === 'recovery' && !!sp.get('token_hash'));
 
     if (isRecoveryFlow) {
       // Skip session restoration - let ResetPassword handle it
