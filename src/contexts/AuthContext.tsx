@@ -69,6 +69,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           return;
         }
         
+        // PASSWORD_RECOVERY event - set session but don't check admin
+        if (event === 'PASSWORD_RECOVERY') {
+          console.log('Password recovery event');
+          setSession(session);
+          setUser(session?.user ?? null);
+          setIsAdmin(false);
+          setIsLoading(false);
+          return;
+        }
+        
         setSession(session);
         setUser(session?.user ?? null);
 
@@ -83,21 +93,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
     );
 
-    // Check if we're in a recovery flow (on ANY page, not just /reset-password)
-    const sp = new URLSearchParams(window.location.search);
-    const isRecoveryFlow =
-      (window.location.hash.includes('type=recovery') &&
-        (window.location.hash.includes('access_token') || window.location.hash.includes('token_hash'))) ||
-      (sp.get('type') === 'recovery' && !!sp.get('token_hash'));
-
-    if (isRecoveryFlow) {
-      // Skip session restoration - let ResetPassword handle it
-      console.log('AuthContext: Detected recovery flow, skipping session restoration');
-      setIsLoading(false);
-      return () => subscription.unsubscribe();
-    }
-
-    // Normal flow: check for existing session
+    // Check for existing session - Supabase will auto-process URL tokens
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);

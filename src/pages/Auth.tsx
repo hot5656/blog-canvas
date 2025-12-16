@@ -29,13 +29,10 @@ const Auth = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const sp = new URLSearchParams(location.search);
-
-    const hasRecoveryHash =
-      location.hash.includes('type=recovery') && location.hash.includes('access_token');
-    const hasRecoveryQuery = sp.get('type') === 'recovery' && !!sp.get('token_hash');
-
-    if (hasRecoveryHash || hasRecoveryQuery) return;
+    // Check if we're in a recovery flow - don't redirect
+    const isRecoveryUrl = location.hash.includes('type=recovery') || 
+                         location.search.includes('type=recovery');
+    if (isRecoveryUrl) return;
 
     if (user && !isLoading) {
       navigate('/');
