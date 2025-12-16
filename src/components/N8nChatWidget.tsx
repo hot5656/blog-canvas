@@ -14,7 +14,7 @@ const N8nChatWidget = () => {
     script.innerHTML = `
       import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/chat.bundle.es.js';
       createChat({
-        webhookUrl: 'https://hot5656.app.n8n.cloud/webhook/3ed8be09-7f9d-4ffd-b387-0632a4417dd9/chat',
+        webhookUrl: 'https://hot5656.app.n8n.cloud/webhook/blog-journal/chat',
         mode: 'window',
         chatInputKey: 'chatInput',
         chatSessionKey: 'sessionId',
