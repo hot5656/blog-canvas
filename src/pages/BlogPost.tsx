@@ -92,56 +92,111 @@ const BlogPost = () => {
     // Convert literal \n to actual newlines
     const processedContent = content.replace(/\\n/g, '\n');
     
-    return processedContent.split("\n\n").map((paragraph, index) => {
-      // Handle ### h3 headings
-      if (paragraph.startsWith("### ")) {
-        return (
-          <h3 key={index} className="text-xl font-semibold mt-8 mb-3 font-serif">
-            {formatInlineMarkdown(paragraph.replace("### ", ""))}
-          </h3>
-        );
+    // Split by double newlines first, then process each block
+    // Also handle single newlines for block elements
+    const blocks = processedContent.split(/\n\n+/);
+    const result: JSX.Element[] = [];
+    let keyIndex = 0;
+
+    blocks.forEach((block) => {
+      // Split block by single newlines for line-by-line processing
+      const lines = block.split('\n');
+      let i = 0;
+
+      while (i < lines.length) {
+        const line = lines[i];
+        const trimmedLine = line.trim();
+
+        // Skip empty lines
+        if (!trimmedLine) {
+          i++;
+          continue;
+        }
+
+        // Handle ### h3 headings
+        if (trimmedLine.startsWith("### ")) {
+          result.push(
+            <h3 key={keyIndex++} className="text-xl font-semibold mt-8 mb-3 font-serif">
+              {formatInlineMarkdown(trimmedLine.replace("### ", ""))}
+            </h3>
+          );
+          i++;
+          continue;
+        }
+
+        // Handle ## h2 headings
+        if (trimmedLine.startsWith("## ")) {
+          result.push(
+            <h2 key={keyIndex++} className="text-2xl font-semibold mt-10 mb-4 font-serif">
+              {formatInlineMarkdown(trimmedLine.replace("## ", ""))}
+            </h2>
+          );
+          i++;
+          continue;
+        }
+
+        // Handle blockquotes
+        if (trimmedLine.startsWith("> ")) {
+          result.push(
+            <blockquote key={keyIndex++} className="border-l-4 border-primary/50 pl-6 italic my-6 text-muted-foreground">
+              {formatInlineMarkdown(trimmedLine.replace("> ", ""))}
+            </blockquote>
+          );
+          i++;
+          continue;
+        }
+
+        // Handle list items (- or +)
+        if (line.match(/^[\s]*[\-\+]\s/)) {
+          const listItems: string[] = [];
+          while (i < lines.length && lines[i].match(/^[\s]*[\-\+]\s/)) {
+            listItems.push(lines[i]);
+            i++;
+          }
+          result.push(
+            <ul key={keyIndex++} className="list-disc mb-6 space-y-2 pl-6">
+              {listItems.map((item, idx) => {
+                const leadingSpaces = item.match(/^(\s*)/)?.[1]?.length || 0;
+                const nestLevel = Math.floor(leadingSpaces / 4);
+                const itemContent = item.replace(/^[\s]*[\-\+]\s/, '');
+                return (
+                  <li key={idx} className="leading-relaxed" style={{ marginLeft: `${nestLevel * 1.5}rem` }}>
+                    {formatInlineMarkdown(itemContent)}
+                  </li>
+                );
+              })}
+            </ul>
+          );
+          continue;
+        }
+
+        // Regular paragraph - collect consecutive non-special lines
+        const paragraphLines: string[] = [];
+        while (i < lines.length) {
+          const currentLine = lines[i];
+          const currentTrimmed = currentLine.trim();
+          if (!currentTrimmed || 
+              currentTrimmed.startsWith("## ") || 
+              currentTrimmed.startsWith("### ") || 
+              currentTrimmed.startsWith("> ") ||
+              currentLine.match(/^[\s]*[\-\+]\s/)) {
+            break;
+          }
+          paragraphLines.push(currentTrimmed);
+          i++;
+        }
+
+        if (paragraphLines.length > 0) {
+          result.push(
+            <p key={keyIndex++} className="mb-6 leading-relaxed">
+              {formatInlineMarkdown(paragraphLines.join(' '))}
+            </p>
+          );
+        }
       }
-      // Handle ## h2 headings
-      if (paragraph.startsWith("## ")) {
-        return (
-          <h2 key={index} className="text-2xl font-semibold mt-10 mb-4 font-serif">
-            {formatInlineMarkdown(paragraph.replace("## ", ""))}
-          </h2>
-        );
-      }
-      // Handle blockquotes
-      if (paragraph.startsWith("> ")) {
-        return (
-          <blockquote key={index} className="border-l-4 border-primary/50 pl-6 italic my-6 text-muted-foreground">
-            {formatInlineMarkdown(paragraph.replace("> ", ""))}
-          </blockquote>
-        );
-      }
-      // Handle list items (- or +), including nested/indented items
-      if (paragraph.match(/^[\s]*[\-\+]\s/m)) {
-        const lines = paragraph.split('\n').filter(line => line.match(/^[\s]*[\-\+]\s/));
-        return (
-          <ul key={index} className="list-disc mb-6 space-y-2 pl-6">
-            {lines.map((item, i) => {
-              // Count leading spaces to determine nesting level
-              const leadingSpaces = item.match(/^(\s*)/)?.[1]?.length || 0;
-              const nestLevel = Math.floor(leadingSpaces / 4); // 4 spaces = 1 level
-              const content = item.replace(/^[\s]*[\-\+]\s/, '');
-              return (
-                <li key={i} className="leading-relaxed" style={{ marginLeft: `${nestLevel * 1.5}rem` }}>
-                  {formatInlineMarkdown(content)}
-                </li>
-              );
-            })}
-          </ul>
-        );
-      }
-      return (
-        <p key={index} className="mb-6 leading-relaxed">
-          {formatInlineMarkdown(paragraph)}
-        </p>
-      );
     });
+
+    return result;
   };
 
   if (loading) {
