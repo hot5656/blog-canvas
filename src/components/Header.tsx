@@ -40,7 +40,7 @@ const Header = ({ onAddPost }: HeaderProps) => {
         <nav className="flex items-center gap-4">
           {user ? (
             <>
-              {isAdmin && onAddPost && (
+              {onAddPost && (
                 <Button 
                   onClick={onAddPost}
                   className="gap-2"
