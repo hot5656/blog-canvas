@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { BlogPost, PostStatus } from "@/types/blog";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface EditPostModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface EditPostModalProps {
 }
 
 const EditPostModal = ({ isOpen, post, onClose, onSave }: EditPostModalProps) => {
+  const { isAdmin } = useAuth();
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [content, setContent] = useState("");
@@ -39,7 +41,7 @@ const EditPostModal = ({ isOpen, post, onClose, onSave }: EditPostModalProps) =>
     const wordCount = content.split(/\s+/).length;
     const readTime = `${Math.max(1, Math.ceil(wordCount / 200))} min read`;
     
-    onSave(post.id, {
+    const updates: Partial<Omit<BlogPost, "id">> = {
       title,
       excerpt,
       content,
@@ -49,8 +51,14 @@ const EditPostModal = ({ isOpen, post, onClose, onSave }: EditPostModalProps) =>
       },
       readTime,
       tags: tags.split(",").map(tag => tag.trim()).filter(Boolean),
-      status,
-    });
+    };
+    
+    // Only admins can change status
+    if (isAdmin) {
+      updates.status = status;
+    }
+    
+    onSave(post.id, updates);
     
     onClose();
   };
@@ -132,33 +140,35 @@ const EditPostModal = ({ isOpen, post, onClose, onSave }: EditPostModalProps) =>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Status</Label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="status"
-                  value="draft"
-                  checked={status === "draft"}
-                  onChange={() => setStatus("draft")}
-                  className="w-4 h-4 text-primary"
-                />
-                <span className="text-sm">Draft</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="status"
-                  value="published"
-                  checked={status === "published"}
-                  onChange={() => setStatus("published")}
-                  className="w-4 h-4 text-primary"
-                />
-                <span className="text-sm">Published</span>
-              </label>
+          {isAdmin && (
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="status"
+                    value="draft"
+                    checked={status === "draft"}
+                    onChange={() => setStatus("draft")}
+                    className="w-4 h-4 text-primary"
+                  />
+                  <span className="text-sm">Draft</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="status"
+                    value="published"
+                    checked={status === "published"}
+                    onChange={() => setStatus("published")}
+                    className="w-4 h-4 text-primary"
+                  />
+                  <span className="text-sm">Published</span>
+                </label>
+              </div>
             </div>
-          </div>
+          )}
           
           <div className="flex gap-3 pt-4">
             <Button type="button" variant="outline" onClick={onClose} className="flex-1">

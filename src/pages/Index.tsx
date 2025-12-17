@@ -19,12 +19,16 @@ const Index = () => {
 
   useEffect(() => {
     loadPosts();
-  }, []);
+  }, [isAdmin]);
 
   const loadPosts = async () => {
     setIsLoading(true);
     const fetchedPosts = await getPostsFromSupabase();
-    setPosts(fetchedPosts);
+    // Only admins can see draft posts
+    const filteredPosts = isAdmin 
+      ? fetchedPosts 
+      : fetchedPosts.filter(post => post.status === 'published');
+    setPosts(filteredPosts);
     setIsLoading(false);
   };
 
