@@ -15,7 +15,7 @@ const Index = () => {
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user, profile } = useAuth();
 
   useEffect(() => {
     loadPosts();
@@ -29,7 +29,9 @@ const Index = () => {
   };
 
   const handleAddPost = async (newPost: Omit<BlogPost, "id">) => {
-    const created = await addPostToSupabase(newPost);
+    if (!user) return;
+    
+    const created = await addPostToSupabase(newPost, user.id);
     if (created) {
       setPosts([created, ...posts]);
       toast({
@@ -91,9 +93,12 @@ const Index = () => {
   const featuredPost = posts[0];
   const otherPosts = posts.slice(1);
 
+  const canAddPost = !!user;
+  const canEditPost = (post: BlogPost) => isAdmin || post.userId === user?.id;
+
   return (
     <div className="min-h-screen bg-background">
-      <Header onAddPost={isAdmin ? () => setIsModalOpen(true) : undefined} />
+      <Header onAddPost={canAddPost ? () => setIsModalOpen(true) : undefined} />
       
       <main className="container mx-auto px-4 py-12 md:px-6">
         {/* Hero Section */}
@@ -128,7 +133,7 @@ const Index = () => {
                   onEdit={handleEditPost}
                   featured 
                   index={0}
-                  showAdminActions={isAdmin}
+                  showAdminActions={canEditPost(featuredPost)}
                 />
               </section>
             )}
@@ -151,7 +156,7 @@ const Index = () => {
                       onDelete={handleDeletePost}
                       onEdit={handleEditPost}
                       index={index + 1}
-                      showAdminActions={isAdmin}
+                      showAdminActions={canEditPost(post)}
                     />
                   ))}
                 </div>
@@ -161,9 +166,9 @@ const Index = () => {
             {posts.length === 0 && (
               <div className="text-center py-20 animate-fade-in">
                 <p className="text-muted-foreground text-lg mb-4">
-                  {isAdmin ? 'No posts yet. Start writing your first story!' : 'No posts yet. Check back later!'}
+                  {canAddPost ? 'No posts yet. Start writing your first story!' : 'No posts yet. Check back later!'}
                 </p>
-                {isAdmin && (
+                {canAddPost && (
                   <button
                     onClick={() => setIsModalOpen(true)}
                     className="text-primary font-medium hover:underline underline-offset-4"
@@ -190,6 +195,7 @@ const Index = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAdd={handleAddPost}
+        userProfile={profile}
       />
 
       <EditPostModal

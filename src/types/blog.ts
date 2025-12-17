@@ -14,4 +14,5 @@ export interface BlogPost {
   readTime: string;
   tags: string[];
   status: PostStatus;
+  userId?: string;
 }
