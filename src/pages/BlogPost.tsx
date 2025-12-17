@@ -244,11 +244,11 @@ const BlogPost = () => {
 
       <article className="animate-fade-in">
         {/* Hero Image */}
-        <div className="relative aspect-[21/9] md:aspect-[3/1] overflow-hidden">
+        <div className="relative aspect-[16/9] md:aspect-[21/9] overflow-hidden">
           <img
             src={post.featuredImage}
             alt={post.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-center"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
         </div>

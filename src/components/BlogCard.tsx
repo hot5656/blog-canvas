@@ -45,11 +45,11 @@ const BlogCard = ({ post, onDelete, onEdit, featured = false, index = 0, showAdm
       >
         <Link to={`/post/${post.id}`} className="block">
           <div className="grid md:grid-cols-2 gap-0">
-            <div className="relative aspect-[4/3] md:aspect-auto overflow-hidden">
+            <div className="relative aspect-[16/9] md:aspect-[16/9] overflow-hidden">
               <img
                 src={post.featuredImage}
                 alt={post.title}
-                className="h-full w-full object-cover transition-slow group-hover:scale-105"
+                className="h-full w-full object-cover object-center transition-slow group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-foreground/20 to-transparent opacity-0 group-hover:opacity-100 transition-base" />
               {isDraft && (
@@ -130,11 +130,11 @@ const BlogCard = ({ post, onDelete, onEdit, featured = false, index = 0, showAdm
       style={{ animationDelay: `${index * 100}ms` }}
     >
       <Link to={`/post/${post.id}`} className="block">
-        <div className="relative aspect-[16/10] overflow-hidden">
+        <div className="relative aspect-[16/9] overflow-hidden">
           <img
             src={post.featuredImage}
             alt={post.title}
-            className="h-full w-full object-cover transition-slow group-hover:scale-105"
+            className="h-full w-full object-cover object-center transition-slow group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-foreground/30 to-transparent opacity-0 group-hover:opacity-100 transition-base" />
           {isDraft && (
