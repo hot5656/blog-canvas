@@ -8,7 +8,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, name?: string, avatar?: string) => Promise<{ error: Error | null; user?: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
 }
@@ -119,17 +119,38 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return { error: error as Error | null };
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, name?: string, avatar?: string) => {
     const redirectUrl = `${window.location.origin}/`;
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl,
+        data: {
+          name: name || '',
+          avatar_url: avatar || '',
+        },
       },
     });
-    return { error: error as Error | null };
+
+    // If signup successful and we have name/avatar, update the profiles table
+    if (!error && data.user && (name || avatar)) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: data.user.id,
+          name: name || '',
+          avatar_url: avatar || '',
+          email: email,
+        });
+
+      if (profileError) {
+        console.error('Error updating profile:', profileError);
+      }
+    }
+
+    return { error: error as Error | null, user: data?.user };
   };
 
   const signOut = async () => {
