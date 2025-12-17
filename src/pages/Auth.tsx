@@ -281,7 +281,7 @@ const Auth = () => {
                   <Input
                     id="identifier"
                     type="text"
-                    placeholder={mode === 'forgot' ? 'your@email.com' : '電子郵件或名稱'}
+                    placeholder={mode === 'forgot' ? 'your@email.com' : 'guest'}
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
                     disabled={isSubmitting}
@@ -329,7 +329,7 @@ const Auth = () => {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="••••••••"
+                    placeholder="kkk999 for guest"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={isSubmitting}

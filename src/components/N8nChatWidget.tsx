@@ -1,7 +1,13 @@
 import { useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const N8nChatWidget = () => {
+  const { user } = useAuth();
+
   useEffect(() => {
+    // Only load chat widget if user is logged in
+    if (!user) return;
+
     // Load n8n chat CSS
     const link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -35,7 +41,10 @@ const N8nChatWidget = () => {
       document.head.removeChild(link);
       document.body.removeChild(script);
     };
-  }, []);
+  }, [user]);
+
+  // Don't render anything if user is not logged in
+  if (!user) return null;
 
   return null;
 };
