@@ -2,9 +2,15 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+interface UserProfile {
+  name: string;
+  avatar_url: string;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
+  profile: UserProfile | null;
   isAdmin: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -30,8 +36,23 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  const fetchProfile = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('name, avatar_url')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error fetching profile:', error);
+      return null;
+    }
+    return data;
+  };
 
   const checkAdminRole = async (userId: string) => {
     try {
@@ -65,6 +86,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           console.log('User signed out, clearing state');
           setSession(null);
           setUser(null);
+          setProfile(null);
           setIsAdmin(false);
           return;
         }
@@ -74,6 +96,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           console.log('Password recovery event');
           setSession(session);
           setUser(session?.user ?? null);
+          setProfile(null);
           setIsAdmin(false);
           setIsLoading(false);
           return;
@@ -86,9 +109,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         if (session?.user) {
           setTimeout(() => {
             checkAdminRole(session.user.id).then(setIsAdmin);
+            fetchProfile(session.user.id).then(setProfile);
           }, 0);
         } else {
           setIsAdmin(false);
+          setProfile(null);
         }
       }
     );
@@ -99,8 +124,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        checkAdminRole(session.user.id).then((isAdmin) => {
+        Promise.all([
+          checkAdminRole(session.user.id),
+          fetchProfile(session.user.id)
+        ]).then(([isAdmin, profile]) => {
           setIsAdmin(isAdmin);
+          setProfile(profile);
           setIsLoading(false);
         });
       } else {
@@ -188,6 +217,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       value={{
         user,
         session,
+        profile,
         isAdmin,
         isLoading,
         signIn,

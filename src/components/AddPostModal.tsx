@@ -6,10 +6,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { BlogPost } from "@/types/blog";
 
+interface UserProfile {
+  name: string;
+  avatar_url: string;
+}
+
 interface AddPostModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (post: Omit<BlogPost, "id">) => void;
+  userProfile: UserProfile | null;
 }
 
 const unsplashImages = [
@@ -20,17 +26,10 @@ const unsplashImages = [
   "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200&auto=format&fit=crop&q=80",
 ];
 
-const authorAvatars = [
-  "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1599566150163-29194dcabd36?w=150&auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150&auto=format&fit=crop&q=80",
-];
-
-const AddPostModal = ({ isOpen, onClose, onAdd }: AddPostModalProps) => {
+const AddPostModal = ({ isOpen, onClose, onAdd, userProfile }: AddPostModalProps) => {
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [content, setContent] = useState("");
-  const [authorName, setAuthorName] = useState("");
   const [tags, setTags] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -45,8 +44,8 @@ const AddPostModal = ({ isOpen, onClose, onAdd }: AddPostModalProps) => {
       content,
       featuredImage: unsplashImages[Math.floor(Math.random() * unsplashImages.length)],
       author: {
-        name: authorName,
-        avatar: authorAvatars[Math.floor(Math.random() * authorAvatars.length)]
+        name: userProfile?.name || 'Anonymous',
+        avatar: userProfile?.avatar_url || '/placeholder.svg'
       },
       date: new Date().toLocaleDateString("en-US", { 
         year: "numeric", 
@@ -64,7 +63,6 @@ const AddPostModal = ({ isOpen, onClose, onAdd }: AddPostModalProps) => {
     setTitle("");
     setExcerpt("");
     setContent("");
-    setAuthorName("");
     setTags("");
     onClose();
   };
@@ -86,6 +84,21 @@ const AddPostModal = ({ isOpen, onClose, onAdd }: AddPostModalProps) => {
         </div>
         
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Author preview */}
+          {userProfile && (
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+              <img
+                src={userProfile.avatar_url}
+                alt={userProfile.name}
+                className="h-10 w-10 rounded-full object-cover ring-2 ring-border"
+              />
+              <div>
+                <p className="text-sm font-medium">{userProfile.name}</p>
+                <p className="text-xs text-muted-foreground">Author</p>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input
@@ -123,27 +136,14 @@ const AddPostModal = ({ isOpen, onClose, onAdd }: AddPostModalProps) => {
             />
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="author">Author Name</Label>
-              <Input
-                id="author"
-                value={authorName}
-                onChange={(e) => setAuthorName(e.target.value)}
-                placeholder="Your name"
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="tags">Tags</Label>
-              <Input
-                id="tags"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="Design, Tech, Life (comma separated)"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="tags">Tags</Label>
+            <Input
+              id="tags"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder="Design, Tech, Life (comma separated)"
+            />
           </div>
           
           <p className="text-xs text-muted-foreground">

@@ -26,6 +26,7 @@ export async function getPostsFromSupabase(): Promise<BlogPost[]> {
     readTime: post.read_time || '5 min read',
     tags: post.tags || [],
     status: post.status || 'published',
+    userId: post.user_id || undefined,
   }));
 }
 
@@ -55,10 +56,11 @@ export async function getPostByIdFromSupabase(id: string): Promise<BlogPost | un
     readTime: data.read_time || '5 min read',
     tags: data.tags || [],
     status: data.status || 'published',
+    userId: data.user_id || undefined,
   };
 }
 
-export async function addPostToSupabase(post: Omit<BlogPost, 'id'>): Promise<BlogPost | null> {
+export async function addPostToSupabase(post: Omit<BlogPost, 'id'>, userId: string): Promise<BlogPost | null> {
   const { data, error } = await supabase
     .from('posts')
     .insert({
@@ -72,6 +74,7 @@ export async function addPostToSupabase(post: Omit<BlogPost, 'id'>): Promise<Blo
       read_time: post.readTime,
       tags: post.tags,
       status: post.status || 'published',
+      user_id: userId,
     })
     .select()
     .single();
@@ -95,6 +98,7 @@ export async function addPostToSupabase(post: Omit<BlogPost, 'id'>): Promise<Blo
     readTime: data.read_time || '5 min read',
     tags: data.tags || [],
     status: data.status || 'published',
+    userId: data.user_id || undefined,
   };
 }
 
@@ -140,6 +144,7 @@ export async function updatePostInSupabase(id: string, post: Partial<Omit<BlogPo
     readTime: data.read_time || '5 min read',
     tags: data.tags || [],
     status: data.status || 'published',
+    userId: data.user_id || undefined,
   };
 }
 
