@@ -7,6 +7,16 @@ import AddPostModal from "@/components/AddPostModal";
 import EditPostModal from "@/components/EditPostModal";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+
+const POSTS_PER_PAGE = 13;
 
 const Index = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -14,6 +24,7 @@ const Index = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
   const { isAdmin, user, profile } = useAuth();
 
@@ -32,12 +43,27 @@ const Index = () => {
     setIsLoading(false);
   };
 
+  // Pagination logic
+  const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
+  const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
+  const endIndex = startIndex + POSTS_PER_PAGE;
+  const currentPosts = posts.slice(startIndex, endIndex);
+
+  const featuredPost = currentPosts[0];
+  const otherPosts = currentPosts.slice(1);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleAddPost = async (newPost: Omit<BlogPost, "id">) => {
     if (!user) return;
     
     const created = await addPostToSupabase(newPost, user.id);
     if (created) {
       setPosts([created, ...posts]);
+      setCurrentPage(1); // Go to first page to see new post
       toast({
         title: "Post published!",
         description: "Your new post is now live on the blog.",
@@ -80,7 +106,13 @@ const Index = () => {
   const handleDeletePost = async (id: string) => {
     const success = await deletePostFromSupabase(id);
     if (success) {
-      setPosts(posts.filter(post => post.id !== id));
+      const newPosts = posts.filter(post => post.id !== id);
+      setPosts(newPosts);
+      // Adjust current page if necessary
+      const newTotalPages = Math.ceil(newPosts.length / POSTS_PER_PAGE);
+      if (currentPage > newTotalPages && newTotalPages > 0) {
+        setCurrentPage(newTotalPages);
+      }
       toast({
         title: "Post deleted",
         description: "The post has been removed from your blog.",
@@ -94,11 +126,29 @@ const Index = () => {
     }
   };
 
-  const featuredPost = posts[0];
-  const otherPosts = posts.slice(1);
-
   const canAddPost = !!user;
   const canEditPost = (post: BlogPost) => isAdmin || post.userId === user?.id;
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages: number[] = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      const start = Math.max(1, currentPage - 2);
+      const end = Math.min(totalPages, start + maxVisiblePages - 1);
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+    }
+    
+    return pages;
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -164,6 +214,44 @@ const Index = () => {
                     />
                   ))}
                 </div>
+              </section>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <section className="mt-12">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    
+                    {getPageNumbers().map((page) => (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => handlePageChange(page)}
+                          isActive={currentPage === page}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+                <p className="text-center text-sm text-muted-foreground mt-4">
+                  Page {currentPage} of {totalPages} · {posts.length} posts total
+                </p>
               </section>
             )}
 
