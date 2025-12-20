@@ -211,6 +211,18 @@ const translations: Record<Language, Record<string, string>> = {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
+const MANUAL_LANG_KEY = 'userManualLanguage';
+
+// Detect browser language
+const detectBrowserLanguage = (): Language => {
+  const browserLang = navigator.language || (navigator as any).userLanguage || 'en';
+  // Check if browser language is Chinese (zh, zh-TW, zh-CN, zh-HK, etc.)
+  if (browserLang.toLowerCase().startsWith('zh')) {
+    return 'zh-tw';
+  }
+  return 'en';
+};
+
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -224,15 +236,59 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const [language, setLanguageState] = useState<Language>(() => getLanguageFromPath(location.pathname));
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  // On initial load, check if user has manually selected language
+  // If not, detect browser language and redirect
+  useEffect(() => {
+    if (hasInitialized) return;
+    
+    const manualLang = localStorage.getItem(MANUAL_LANG_KEY);
+    
+    if (!manualLang) {
+      // User has not manually selected, detect browser language
+      const detectedLang = detectBrowserLanguage();
+      const currentLang = getLanguageFromPath(location.pathname);
+      
+      if (detectedLang !== currentLang) {
+        // Redirect to detected language
+        const currentPath = location.pathname;
+        let newPath: string;
+        
+        if (detectedLang === 'zh-tw') {
+          if (currentPath.startsWith('/zh-tw')) {
+            newPath = currentPath;
+          } else {
+            newPath = '/zh-tw' + (currentPath === '/' ? '' : currentPath);
+          }
+        } else {
+          if (currentPath.startsWith('/zh-tw')) {
+            newPath = currentPath.replace('/zh-tw', '') || '/';
+          } else {
+            newPath = currentPath;
+          }
+        }
+        
+        navigate(newPath, { replace: true });
+        setLanguageState(detectedLang);
+      }
+    }
+    
+    setHasInitialized(true);
+  }, [location.pathname, navigate, hasInitialized]);
 
   useEffect(() => {
+    if (!hasInitialized) return;
     const newLang = getLanguageFromPath(location.pathname);
     if (newLang !== language) {
       setLanguageState(newLang);
     }
-  }, [location.pathname]);
+  }, [location.pathname, hasInitialized]);
 
   const setLanguage = (lang: Language) => {
+    // Mark that user has manually selected language
+    localStorage.setItem(MANUAL_LANG_KEY, lang);
+    
     const currentPath = location.pathname;
     let newPath: string;
 
