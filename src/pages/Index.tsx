@@ -7,6 +7,7 @@ import AddPostModal from "@/components/AddPostModal";
 import EditPostModal from "@/components/EditPostModal";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Pagination,
   PaginationContent,
@@ -27,6 +28,7 @@ const Index = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
   const { isAdmin, user, profile } = useAuth();
+  const { t, language } = useLanguage();
 
   useEffect(() => {
     loadPosts();
@@ -65,13 +67,13 @@ const Index = () => {
       setPosts([created, ...posts]);
       setCurrentPage(1); // Go to first page to see new post
       toast({
-        title: "Post published!",
-        description: "Your new post is now live on the blog.",
+        title: t('toast.postPublished'),
+        description: t('toast.postPublishedDesc'),
       });
     } else {
       toast({
-        title: "Error",
-        description: "Failed to publish post. Please try again.",
+        title: t('toast.publishError'),
+        description: t('toast.publishFailed'),
         variant: "destructive",
       });
     }
@@ -87,17 +89,17 @@ const Index = () => {
     if (updated) {
       setPosts(posts.map(p => p.id === id ? updated : p));
       toast({
-        title: "Post updated!",
+        title: t('toast.postUpdated'),
         description: updates.status === 'published' 
-          ? "Your post is now published." 
+          ? t('toast.nowPublished')
           : updates.status === 'draft' 
-            ? "Your post is now a draft." 
-            : "Your changes have been saved.",
+            ? t('toast.nowDraft')
+            : t('toast.changesSaved'),
       });
     } else {
       toast({
-        title: "Error",
-        description: "Failed to update post. Please try again.",
+        title: t('toast.updateError'),
+        description: t('toast.updateFailed'),
         variant: "destructive",
       });
     }
@@ -114,13 +116,13 @@ const Index = () => {
         setCurrentPage(newTotalPages);
       }
       toast({
-        title: "Post deleted",
-        description: "The post has been removed from your blog.",
+        title: t('toast.postDeleted'),
+        description: t('toast.postDeletedDesc'),
       });
     } else {
       toast({
-        title: "Error",
-        description: "Failed to delete post. Please try again.",
+        title: t('toast.deleteError'),
+        description: t('toast.deleteFailed'),
         variant: "destructive",
       });
     }
@@ -150,6 +152,14 @@ const Index = () => {
     return pages;
   };
 
+  // Pagination text based on language
+  const getPaginationText = () => {
+    if (language === 'zh-tw') {
+      return `${t('pagination.page')} ${currentPage} ${t('pagination.of')} ${totalPages} 頁 · ${posts.length} ${t('pagination.posts')}`;
+    }
+    return `${t('pagination.page')} ${currentPage} ${t('pagination.of')} ${totalPages} · ${posts.length} ${t('pagination.posts')}`;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header onAddPost={canAddPost ? () => setIsModalOpen(true) : undefined} />
@@ -158,16 +168,24 @@ const Index = () => {
         {/* Hero Section */}
         <section className="mb-16 text-center animate-fade-in">
           <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4 text-balance">
-            Stories that <span className="text-primary">inspire</span>
+            {language === 'zh-tw' ? (
+              <>
+                {t('hero.title')}<span className="text-primary">{t('hero.highlight')}</span>
+              </>
+            ) : (
+              <>
+                {t('hero.title')} <span className="text-primary">{t('hero.highlight')}</span>
+              </>
+            )}
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-            A curated collection of thoughts on design, technology, culture, and the art of mindful living.
+            {t('hero.description')}
           </p>
         </section>
 
         {isLoading ? (
           <div className="text-center py-20">
-            <p className="text-muted-foreground text-lg">Loading posts...</p>
+            <p className="text-muted-foreground text-lg">{t('posts.loading')}</p>
           </div>
         ) : (
           <>
@@ -177,7 +195,7 @@ const Index = () => {
                 <div className="flex items-center gap-3 mb-6">
                   <div className="h-px flex-1 bg-border" />
                   <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                    Featured
+                    {t('section.featured')}
                   </span>
                   <div className="h-px flex-1 bg-border" />
                 </div>
@@ -198,7 +216,7 @@ const Index = () => {
                 <div className="flex items-center gap-3 mb-6">
                   <div className="h-px flex-1 bg-border" />
                   <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                    Latest Posts
+                    {t('section.latest')}
                   </span>
                   <div className="h-px flex-1 bg-border" />
                 </div>
@@ -250,7 +268,7 @@ const Index = () => {
                   </PaginationContent>
                 </Pagination>
                 <p className="text-center text-sm text-muted-foreground mt-4">
-                  Page {currentPage} of {totalPages} · {posts.length} posts total
+                  {getPaginationText()}
                 </p>
               </section>
             )}
@@ -258,14 +276,14 @@ const Index = () => {
             {posts.length === 0 && (
               <div className="text-center py-20 animate-fade-in">
                 <p className="text-muted-foreground text-lg mb-4">
-                  {canAddPost ? 'No posts yet. Start writing your first story!' : 'No posts yet. Check back later!'}
+                  {canAddPost ? t('posts.empty.auth') : t('posts.empty.guest')}
                 </p>
                 {canAddPost && (
                   <button
                     onClick={() => setIsModalOpen(true)}
                     className="text-primary font-medium hover:underline underline-offset-4"
                   >
-                    Create your first post →
+                    {t('posts.create')}
                   </button>
                 )}
               </div>
@@ -278,7 +296,7 @@ const Index = () => {
       <footer className="border-t border-border py-8 mt-16">
         <div className="container mx-auto px-4 md:px-6 text-center">
           <p className="text-sm text-muted-foreground">
-            © 2024 The Journal. Powered by Supabase.
+            {t('footer.copyright')}
           </p>
         </div>
       </footer>

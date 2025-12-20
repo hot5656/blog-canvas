@@ -2,6 +2,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { PenLine, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,18 +17,19 @@ interface HeaderProps {
 
 const Header = ({ onAddPost }: HeaderProps) => {
   const { user, isAdmin, signOut } = useAuth();
+  const { t, getLocalizedPath } = useLanguage();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/');
+    navigate(getLocalizedPath('/'));
   };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
         <Link 
-          to="/" 
+          to={getLocalizedPath('/')} 
           className="flex items-center gap-3 transition-base hover:opacity-80"
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -37,7 +40,9 @@ const Header = ({ onAddPost }: HeaderProps) => {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-4">
+        <nav className="flex items-center gap-2">
+          <LanguageSwitcher />
+          
           {user ? (
             <>
               {onAddPost && (
@@ -46,7 +51,7 @@ const Header = ({ onAddPost }: HeaderProps) => {
                   className="gap-2"
                 >
                   <PenLine className="h-4 w-4" />
-                  Write
+                  {t('header.write')}
                 </Button>
               )}
               <DropdownMenu>
@@ -63,12 +68,12 @@ const Header = ({ onAddPost }: HeaderProps) => {
                   </DropdownMenuItem>
                   {isAdmin && (
                     <DropdownMenuItem disabled className="text-xs text-primary font-medium">
-                      管理員
+                      {t('header.admin')}
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                     <LogOut className="mr-2 h-4 w-4" />
-                    登出
+                    {t('header.logout')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -76,10 +81,10 @@ const Header = ({ onAddPost }: HeaderProps) => {
           ) : (
             <Button 
               variant="outline"
-              onClick={() => navigate('/auth')}
+              onClick={() => navigate(getLocalizedPath('/auth'))}
               className="gap-2"
             >
-              登入
+              {t('header.login')}
             </Button>
           )}
         </nav>
