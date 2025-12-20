@@ -5,11 +5,13 @@ import { BlogPost as BlogPostType } from "@/types/blog";
 import { getPostByIdFromSupabase, deletePostFromSupabase } from "@/lib/supabaseBlogData";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const BlogPost = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t, getLocalizedPath } = useLanguage();
   const [post, setPost] = useState<BlogPostType | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -29,14 +31,14 @@ const BlogPost = () => {
       const success = await deletePostFromSupabase(post.id);
       if (success) {
         toast({
-          title: "Post deleted",
-          description: "The post has been removed from your blog.",
+          title: t('toast.postDeleted'),
+          description: t('toast.postDeletedDesc'),
         });
-        navigate("/");
+        navigate(getLocalizedPath('/'));
       } else {
         toast({
-          title: "Error",
-          description: "Failed to delete post. Please try again.",
+          title: t('toast.deleteError'),
+          description: t('toast.deleteFailed'),
           variant: "destructive",
         });
       }
@@ -210,9 +212,9 @@ const BlogPost = () => {
   if (!post) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
-        <h1 className="font-serif text-2xl font-semibold">Post not found</h1>
-        <Link to="/" className="text-primary hover:underline underline-offset-4">
-          ← Back to home
+        <h1 className="font-serif text-2xl font-semibold">{t('post.notfound')}</h1>
+        <Link to={getLocalizedPath('/')} className="text-primary hover:underline underline-offset-4">
+          ← {t('post.back')}
         </Link>
       </div>
     );
@@ -224,11 +226,11 @@ const BlogPost = () => {
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           <Link 
-            to="/" 
+            to={getLocalizedPath('/')} 
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-base"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="text-sm font-medium">Back to all posts</span>
+            <span className="text-sm font-medium">{t('post.back')}</span>
           </Link>
           <Button
             variant="ghost"
@@ -237,7 +239,7 @@ const BlogPost = () => {
             className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            Delete
+            {t('post.delete')}
           </Button>
         </div>
       </header>
@@ -282,7 +284,7 @@ const BlogPost = () => {
                   />
                   <div>
                     <p className="font-medium text-foreground">{post.author.name}</p>
-                    <p className="text-xs">Author</p>
+                    <p className="text-xs">{t('post.author')}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -306,11 +308,11 @@ const BlogPost = () => {
             {/* Back Link */}
             <div className="text-center py-12">
               <Link 
-                to="/"
+                to={getLocalizedPath('/')}
                 className="inline-flex items-center gap-2 text-primary font-medium hover:underline underline-offset-4"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Back to all posts
+                {t('post.back')}
               </Link>
             </div>
           </div>

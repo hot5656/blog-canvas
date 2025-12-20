@@ -5,6 +5,7 @@ import { BlogPost } from "@/types/blog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface BlogCardProps {
   post: BlogPost;
@@ -17,6 +18,7 @@ interface BlogCardProps {
 
 const BlogCard = ({ post, onDelete, onEdit, featured = false, index = 0, showAdminActions = false }: BlogCardProps) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const { getLocalizedPath } = useLanguage();
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -43,7 +45,7 @@ const BlogCard = ({ post, onDelete, onEdit, featured = false, index = 0, showAdm
         className={`group relative overflow-hidden rounded-2xl bg-card shadow-card transition-base hover:shadow-card-hover animate-fade-in ${isDraft ? 'opacity-75' : ''}`}
         style={{ animationDelay: `${index * 100}ms` }}
       >
-        <Link to={`/post/${post.id}`} className="block">
+        <Link to={getLocalizedPath(`/post/${post.id}`)} className="block">
           <div className="grid md:grid-cols-2 gap-0">
             <div className="relative aspect-[16/9] md:aspect-[16/9] overflow-hidden">
               <img
@@ -129,7 +131,7 @@ const BlogCard = ({ post, onDelete, onEdit, featured = false, index = 0, showAdm
       className={`group relative overflow-hidden rounded-xl bg-card shadow-card transition-base hover:shadow-card-hover animate-fade-in ${isDraft ? 'opacity-75' : ''}`}
       style={{ animationDelay: `${index * 100}ms` }}
     >
-      <Link to={`/post/${post.id}`} className="block">
+      <Link to={getLocalizedPath(`/post/${post.id}`)} className="block">
         <div className="relative aspect-[16/9] overflow-hidden">
           <img
             src={post.featuredImage}

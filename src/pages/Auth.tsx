@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { z } from 'zod';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,17 +10,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { PenLine, Loader2, Check } from 'lucide-react';
-
-const loginSchema = z.object({
-  identifier: z.string().trim().min(1, { message: '請輸入電子郵件或名稱' }),
-  password: z.string().min(6, { message: '密碼至少需要 6 個字元' }),
-});
-
-const signupSchema = z.object({
-  email: z.string().trim().email({ message: '請輸入有效的電子郵件地址' }),
-  name: z.string().trim().min(2, { message: '名稱至少需要 2 個字元' }),
-  password: z.string().min(6, { message: '密碼至少需要 6 個字元' }),
-});
 
 type AuthMode = 'login' | 'signup' | 'forgot';
 
@@ -41,9 +31,22 @@ const Auth = () => {
   const [errors, setErrors] = useState<{ identifier?: string; email?: string; name?: string; password?: string; avatar?: string }>({});
 
   const { signIn, signUp, resetPassword, user, isLoading } = useAuth();
+  const { t, getLocalizedPath } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+
+  // Create validation schemas with translated messages
+  const loginSchema = z.object({
+    identifier: z.string().trim().min(1, { message: t('validation.emailOrName') }),
+    password: z.string().min(6, { message: t('validation.password') }),
+  });
+
+  const signupSchema = z.object({
+    email: z.string().trim().email({ message: t('validation.email') }),
+    name: z.string().trim().min(2, { message: t('validation.name') }),
+    password: z.string().min(6, { message: t('validation.password') }),
+  });
 
   // Fetch avatars from author-avatars bucket
   useEffect(() => {
@@ -86,20 +89,20 @@ const Auth = () => {
     if (isRecoveryUrl) return;
 
     if (user && !isLoading) {
-      navigate('/');
+      navigate(getLocalizedPath('/'));
     }
-  }, [user, isLoading, navigate, location.hash, location.search]);
+  }, [user, isLoading, navigate, location.hash, location.search, getLocalizedPath]);
 
   const validateForm = () => {
     try {
       if (mode === 'forgot') {
-        z.string().trim().email({ message: '請輸入有效的電子郵件地址' }).parse(identifier);
+        z.string().trim().email({ message: t('validation.email') }).parse(identifier);
       } else if (mode === 'login') {
         loginSchema.parse({ identifier, password });
       } else {
         signupSchema.parse({ email, name, password });
         if (!selectedAvatar) {
-          setErrors(prev => ({ ...prev, avatar: '請選擇一個頭像' }));
+          setErrors(prev => ({ ...prev, avatar: t('validation.avatar') }));
           return false;
         }
       }
@@ -131,14 +134,14 @@ const Auth = () => {
         const { error } = await resetPassword(identifier);
         if (error) {
           toast({
-            title: '發送失敗',
+            title: t('toast.sendFailed'),
             description: error.message,
             variant: 'destructive',
           });
         } else {
           toast({
-            title: '重設郵件已發送',
-            description: '請檢查您的電子郵件以重設密碼。',
+            title: t('toast.resetSent'),
+            description: t('toast.resetSentDesc'),
           });
           setMode('login');
         }
@@ -157,8 +160,8 @@ const Auth = () => {
 
           if (profileError || !profile) {
             toast({
-              title: '登入失敗',
-              description: '找不到此使用者名稱。',
+              title: t('toast.loginFailed'),
+              description: t('toast.userNotFound'),
               variant: 'destructive',
             });
             setIsSubmitting(false);
@@ -174,8 +177,8 @@ const Auth = () => {
 
           if (userError || !userData?.email) {
             toast({
-              title: '登入失敗',
-              description: '無法取得使用者資料。',
+              title: t('toast.loginFailed'),
+              description: t('toast.fetchUserFailed'),
               variant: 'destructive',
             });
             setIsSubmitting(false);
@@ -189,23 +192,23 @@ const Auth = () => {
         if (error) {
           if (error.message.includes('Invalid login credentials')) {
             toast({
-              title: '登入失敗',
-              description: '電子郵件/名稱或密碼錯誤，請重試。',
+              title: t('toast.loginFailed'),
+              description: t('toast.invalidCredentials'),
               variant: 'destructive',
             });
           } else {
             toast({
-              title: '登入失敗',
+              title: t('toast.loginFailed'),
               description: error.message,
               variant: 'destructive',
             });
           }
         } else {
           toast({
-            title: '登入成功',
-            description: '歡迎回來！',
+            title: t('toast.loginSuccess'),
+            description: t('toast.welcomeBack'),
           });
-          navigate('/');
+          navigate(getLocalizedPath('/'));
         }
       } else {
         // Signup with name and avatar
@@ -213,21 +216,21 @@ const Auth = () => {
         if (error) {
           if (error.message.includes('User already registered')) {
             toast({
-              title: '註冊失敗',
-              description: '此電子郵件已被註冊，請使用其他郵件或直接登入。',
+              title: t('toast.signupFailed'),
+              description: t('toast.emailExists'),
               variant: 'destructive',
             });
           } else {
             toast({
-              title: '註冊失敗',
+              title: t('toast.signupFailed'),
               description: error.message,
               variant: 'destructive',
             });
           }
         } else {
           toast({
-            title: '註冊成功',
-            description: '請檢查您的電子郵件以確認帳號。',
+            title: t('toast.signupSuccess'),
+            description: t('toast.confirmEmail'),
           });
         }
       }
@@ -261,14 +264,14 @@ const Auth = () => {
         <Card className="shadow-elevated">
           <CardHeader className="text-center">
             <CardTitle className="font-serif text-2xl">
-              {mode === 'login' ? '歡迎回來' : mode === 'signup' ? '建立帳號' : '忘記密碼'}
+              {mode === 'login' ? t('auth.welcome') : mode === 'signup' ? t('auth.create') : t('auth.forgot')}
             </CardTitle>
             <CardDescription>
               {mode === 'login'
-                ? '使用電子郵件或名稱登入'
+                ? t('auth.login.desc')
                 : mode === 'signup'
-                ? '註冊新帳號以開始使用'
-                : '輸入您的電子郵件以重設密碼'}
+                ? t('auth.signup.desc')
+                : t('auth.forgot.desc')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -276,7 +279,7 @@ const Auth = () => {
               {mode === 'login' || mode === 'forgot' ? (
                 <div className="space-y-2">
                   <Label htmlFor="identifier">
-                    {mode === 'forgot' ? '電子郵件' : '電子郵件或名稱'}
+                    {mode === 'forgot' ? t('auth.email') : t('auth.emailOrName')}
                   </Label>
                   <Input
                     id="identifier"
@@ -293,7 +296,7 @@ const Auth = () => {
               ) : (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="email">電子郵件</Label>
+                    <Label htmlFor="email">{t('auth.email')}</Label>
                     <Input
                       id="email"
                       type="email"
@@ -307,11 +310,11 @@ const Auth = () => {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="name">名稱</Label>
+                    <Label htmlFor="name">{t('auth.name')}</Label>
                     <Input
                       id="name"
                       type="text"
-                      placeholder="您的名稱"
+                      placeholder="Your name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       disabled={isSubmitting}
@@ -325,7 +328,7 @@ const Auth = () => {
 
               {mode !== 'forgot' && (
                 <div className="space-y-2">
-                  <Label htmlFor="password">密碼</Label>
+                  <Label htmlFor="password">{t('auth.password')}</Label>
                   <Input
                     id="password"
                     type="password"
@@ -342,13 +345,13 @@ const Auth = () => {
 
               {mode === 'signup' && (
                 <div className="space-y-2">
-                  <Label>選擇頭像</Label>
+                  <Label>{t('auth.selectAvatar')}</Label>
                   {isLoadingAvatars ? (
                     <div className="flex items-center justify-center py-4">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
                   ) : avatarOptions.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">沒有可用的頭像</p>
+                    <p className="text-sm text-muted-foreground">{t('auth.noAvatars')}</p>
                   ) : (
                     <div className="grid grid-cols-4 gap-2">
                       {avatarOptions.map((avatar) => (
@@ -390,14 +393,14 @@ const Auth = () => {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    處理中...
+                    {t('auth.processing')}
                   </>
                 ) : mode === 'login' ? (
-                  '登入'
+                  t('auth.loginBtn')
                 ) : mode === 'signup' ? (
-                  '註冊'
+                  t('auth.signupBtn')
                 ) : (
-                  '發送重設郵件'
+                  t('auth.sendReset')
                 )}
               </Button>
             </form>
@@ -412,7 +415,7 @@ const Auth = () => {
                   }}
                   className="text-sm text-muted-foreground hover:text-primary hover:underline underline-offset-4"
                 >
-                  忘記密碼？
+                  {t('auth.forgotLink')}
                 </button>
               </div>
             )}
@@ -427,12 +430,12 @@ const Auth = () => {
                   }}
                   className="text-primary font-medium hover:underline underline-offset-4"
                 >
-                  返回登入
+                  {t('auth.backToLogin')}
                 </button>
               ) : (
                 <>
                   <span className="text-muted-foreground">
-                    {mode === 'login' ? '還沒有帳號？' : '已經有帳號？'}
+                    {mode === 'login' ? t('auth.noAccount') : t('auth.hasAccount')}
                   </span>{' '}
                   <button
                     type="button"
@@ -442,7 +445,7 @@ const Auth = () => {
                     }}
                     className="text-primary font-medium hover:underline underline-offset-4"
                   >
-                    {mode === 'login' ? '立即註冊' : '立即登入'}
+                    {mode === 'login' ? t('auth.signupNow') : t('auth.loginNow')}
                   </button>
                 </>
               )}
