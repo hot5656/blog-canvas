@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/tools/:path*", "destination": "https://tools-demos.vercel.app/:path*" },
+    { "source": "/tools/:path*", "destination": "https://tools-collection-smoky.vercel.app/:path*" },
     { "source": "/", "destination": "/blog-journal" }
   ]
 }
