@@ -1,6 +1,7 @@
 {
   "rewrites": [
-    { "source": "/tools/:path*", "destination": "https://tools-collection-smoky.vercel.app/:path*" },
+    { "source": "/tools/:path*", "destination": "https://tools.demos.roberthut.com/:path*" },
+    { "source": "/tools", "destination": "https://tools.demos.roberthut.com/" },
     { "source": "/", "destination": "/blog-journal" }
   ]
 }
