@@ -1,15 +1,17 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 export type Language = 'en' | 'zh-tw';
 
 interface LanguageContextType {
   language: Language;
-  setLanguage: (lang: Language) => void;
+  setLanguage: (lang: Language, isManual?: boolean) => void;
   t: (key: string) => string;
   getLocalizedPath: (path: string) => string;
 }
 
+// Keep your translations as-is (trimmed here only for brevity in editing).
+// Replace this whole object with your original full translations from the old file.
 const translations: Record<Language, Record<string, string>> = {
   en: {
     // Header
@@ -17,11 +19,12 @@ const translations: Record<Language, Record<string, string>> = {
     'header.login': 'Login',
     'header.admin': 'Admin',
     'header.logout': 'Logout',
-    
+
     // Index page
     'hero.title': 'Stories that',
     'hero.highlight': 'inspire',
-    'hero.description': 'A curated collection of thoughts on design, technology, culture, and the art of mindful living.',
+    'hero.description':
+      'A curated collection of thoughts on design, technology, culture, and the art of mindful living.',
     'section.featured': 'Featured',
     'section.latest': 'Latest Posts',
     'posts.loading': 'Loading posts...',
@@ -31,16 +34,16 @@ const translations: Record<Language, Record<string, string>> = {
     'pagination.page': 'Page',
     'pagination.of': 'of',
     'pagination.posts': 'posts total',
-    
+
     // Footer
     'footer.copyright': '© 2024 The Journal. Powered by Supabase.',
-    
+
     // Blog Post
     'post.back': 'Back to all posts',
     'post.delete': 'Delete',
     'post.notfound': 'Post not found',
     'post.author': 'Author',
-    
+
     // Auth
     'auth.welcome': 'Welcome back',
     'auth.create': 'Create account',
@@ -64,14 +67,14 @@ const translations: Record<Language, Record<string, string>> = {
     'auth.signupNow': 'Sign up now',
     'auth.loginNow': 'Login now',
     'auth.processing': 'Processing...',
-    
+
     // Validation
     'validation.emailOrName': 'Please enter email or name',
     'validation.email': 'Please enter a valid email',
     'validation.name': 'Name must be at least 2 characters',
     'validation.password': 'Password must be at least 6 characters',
     'validation.avatar': 'Please select an avatar',
-    
+
     // Toast messages
     'toast.sendFailed': 'Send failed',
     'toast.resetSent': 'Reset email sent',
@@ -100,7 +103,7 @@ const translations: Record<Language, Record<string, string>> = {
     'toast.changesSaved': 'Your changes have been saved.',
     'toast.updateError': 'Error',
     'toast.updateFailed': 'Failed to update post. Please try again.',
-    
+
     // 404
     'notfound.title': '404',
     'notfound.message': 'Oops! Page not found',
@@ -109,13 +112,14 @@ const translations: Record<Language, Record<string, string>> = {
     // Language
     'language.switch': 'Switch language',
   },
+
   'zh-tw': {
     // Header
     'header.write': '撰寫',
     'header.login': '登入',
     'header.admin': '管理員',
     'header.logout': '登出',
-    
+
     // Index page
     'hero.title': '啟發人心的',
     'hero.highlight': '故事',
@@ -129,16 +133,16 @@ const translations: Record<Language, Record<string, string>> = {
     'pagination.page': '第',
     'pagination.of': '頁，共',
     'pagination.posts': '篇文章',
-    
+
     // Footer
     'footer.copyright': '© 2024 The Journal。由 Supabase 提供技術支援。',
-    
+
     // Blog Post
     'post.back': '返回所有文章',
     'post.delete': '刪除',
     'post.notfound': '找不到文章',
     'post.author': '作者',
-    
+
     // Auth
     'auth.welcome': '歡迎回來',
     'auth.create': '建立帳號',
@@ -162,14 +166,14 @@ const translations: Record<Language, Record<string, string>> = {
     'auth.signupNow': '立即註冊',
     'auth.loginNow': '立即登入',
     'auth.processing': '處理中...',
-    
+
     // Validation
     'validation.emailOrName': '請輸入電子郵件或名稱',
     'validation.email': '請輸入有效的電子郵件地址',
     'validation.name': '名稱至少需要 2 個字元',
     'validation.password': '密碼至少需要 6 個字元',
     'validation.avatar': '請選擇一個頭像',
-    
+
     // Toast messages
     'toast.sendFailed': '發送失敗',
     'toast.resetSent': '重設郵件已發送',
@@ -198,7 +202,7 @@ const translations: Record<Language, Record<string, string>> = {
     'toast.changesSaved': '您的更改已儲存。',
     'toast.updateError': '錯誤',
     'toast.updateFailed': '更新文章失敗，請重試。',
-    
+
     // 404
     'notfound.title': '404',
     'notfound.message': '糟糕！找不到頁面',
@@ -211,101 +215,106 @@ const translations: Record<Language, Record<string, string>> = {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-const MANUAL_LANG_KEY = 'userManualLanguage';
+// 用這個 key 存放「語言偏好」(en/zh-tw)，一旦存在就永遠以它為準
+const PREF_LANG_KEY = 'userManualLanguage';
 
 // Detect browser language
 const detectBrowserLanguage = (): Language => {
-  const browserLang = navigator.language || (navigator as any).userLanguage || 'en';
-  // Check if browser language is Chinese (zh, zh-TW, zh-CN, zh-HK, etc.)
+  const browserLang =
+    navigator.language || (navigator as any).userLanguage || 'en';
+
+  // 你的原邏輯：任何 zh* 都導到 zh-tw
   if (browserLang.toLowerCase().startsWith('zh')) {
     return 'zh-tw';
   }
+
   return 'en';
 };
 
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   // Determine language from URL
   const getLanguageFromPath = (pathname: string): Language => {
-    if (pathname.startsWith('/zh-tw')) {
-      return 'zh-tw';
-    }
+    if (pathname.startsWith('/zh-tw')) return 'zh-tw';
     return 'en';
   };
 
-  const [language, setLanguageState] = useState<Language>(() => getLanguageFromPath(location.pathname));
+  const [language, setLanguageState] = useState<Language>(() =>
+    getLanguageFromPath(location.pathname)
+  );
+
   const [hasInitialized, setHasInitialized] = useState(false);
 
-  // On initial load, check if user has manually selected language
-  // If not, detect browser language and redirect
+  const currentLangFromPath = useMemo(
+    () => getLanguageFromPath(location.pathname),
+    [location.pathname]
+  );
+
+  // 初次載入：若 localStorage 沒有偏好 -> 用瀏覽器偵測並導一次 -> 寫入偏好（達成「只第一次」）
+  // 若 localStorage 有偏好 -> 永遠以偏好為準（尊重使用者手動切換）
   useEffect(() => {
     if (hasInitialized) return;
-    
-    const manualLang = localStorage.getItem(MANUAL_LANG_KEY);
-    
-    if (!manualLang) {
-      // User has not manually selected, detect browser language
-      const detectedLang = detectBrowserLanguage();
-      const currentLang = getLanguageFromPath(location.pathname);
-      
-      if (detectedLang !== currentLang) {
-        // Redirect to detected language
-        const currentPath = location.pathname;
-        let newPath: string;
-        
-        if (detectedLang === 'zh-tw') {
-          if (currentPath.startsWith('/zh-tw')) {
-            newPath = currentPath;
-          } else {
-            newPath = '/zh-tw' + (currentPath === '/' ? '' : currentPath);
-          }
-        } else {
-          if (currentPath.startsWith('/zh-tw')) {
-            newPath = currentPath.replace('/zh-tw', '') || '/';
-          } else {
-            newPath = currentPath;
-          }
-        }
-        
-        navigate(newPath, { replace: true });
-        setLanguageState(detectedLang);
+
+    const stored = localStorage.getItem(PREF_LANG_KEY) as Language | null;
+    const storedLang: Language | null =
+      stored === 'en' || stored === 'zh-tw' ? stored : null;
+
+    const targetLang = storedLang ?? detectBrowserLanguage();
+
+    const currentPath = location.pathname;
+    let newPath = currentPath;
+
+    if (targetLang === 'zh-tw') {
+      if (!currentPath.startsWith('/zh-tw')) {
+        newPath = '/zh-tw' + (currentPath === '/' ? '' : currentPath);
+      }
+    } else {
+      if (currentPath.startsWith('/zh-tw')) {
+        newPath = currentPath.replace('/zh-tw', '') || '/';
       }
     }
-    
-    setHasInitialized(true);
-  }, [location.pathname, navigate, hasInitialized]);
 
+    // 需要導頁才導；導頁用 replace 避免歷史紀錄污染
+    if (newPath !== currentPath) {
+      navigate(newPath, { replace: true });
+    }
+
+    // 關鍵：如果原本沒有偏好（第一次進站），把偵測結果寫入 -> 之後不再自動切
+    if (!storedLang) {
+      localStorage.setItem(PREF_LANG_KEY, targetLang);
+    }
+
+    setLanguageState(targetLang);
+    setHasInitialized(true);
+  }, [hasInitialized, location.pathname, navigate]);
+
+  // 後續路徑變化時，同步 language state
   useEffect(() => {
     if (!hasInitialized) return;
-    const newLang = getLanguageFromPath(location.pathname);
-    if (newLang !== language) {
-      setLanguageState(newLang);
+    if (currentLangFromPath !== language) {
+      setLanguageState(currentLangFromPath);
     }
-  }, [location.pathname, hasInitialized]);
+  }, [currentLangFromPath, hasInitialized, language]);
 
-  const setLanguage = (lang: Language) => {
-    // Mark that user has manually selected language
-    localStorage.setItem(MANUAL_LANG_KEY, lang);
-    
+  // 手動切換：寫入偏好，之後永遠以此為準
+  const setLanguage = (lang: Language, isManual: boolean = true) => {
+    if (isManual) {
+      localStorage.setItem(PREF_LANG_KEY, lang);
+    }
+
     const currentPath = location.pathname;
     let newPath: string;
 
     if (lang === 'zh-tw') {
-      // Switch to Chinese
-      if (currentPath.startsWith('/zh-tw')) {
-        newPath = currentPath; // Already in Chinese
-      } else {
-        newPath = '/zh-tw' + (currentPath === '/' ? '' : currentPath);
-      }
+      newPath = currentPath.startsWith('/zh-tw')
+        ? currentPath
+        : '/zh-tw' + (currentPath === '/' ? '' : currentPath);
     } else {
-      // Switch to English
-      if (currentPath.startsWith('/zh-tw')) {
-        newPath = currentPath.replace('/zh-tw', '') || '/';
-      } else {
-        newPath = currentPath; // Already in English
-      }
+      newPath = currentPath.startsWith('/zh-tw')
+        ? currentPath.replace('/zh-tw', '') || '/'
+        : currentPath;
     }
 
     navigate(newPath);
@@ -313,7 +322,7 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const t = (key: string): string => {
-    return translations[language][key] || key;
+    return translations[language]?.[key] || key;
   };
 
   const getLocalizedPath = (path: string): string => {
@@ -337,3 +346,4 @@ export const useLanguage = () => {
   }
   return context;
 };
+
