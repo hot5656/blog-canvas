@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
 import App from "./App";
-import { LanguageProvider } from "./LanguageContext"; // 依你實際路徑調整
+import { LanguageProvider } from "./contexts/LanguageContext"; // 依你實際路徑調整
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
