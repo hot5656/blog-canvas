@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    // 🔐 Validate N8N API Key
+    // 驗證 n8n API Key
     const n8nApiKey = Deno.env.get('N8N_API_KEY');
     const providedApiKey = req.headers.get('x-n8n-api-key');
     
