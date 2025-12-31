@@ -135,7 +135,7 @@ const translations: Record<Language, Record<string, string>> = {
     'pagination.posts': '篇文章',
 
     // Footer
-    'footer.copyright': '© 2024 The Journal。由 Supabase 提供技術支援。',
+    'footer.copyright': '© 2025 The Journal。',
 
     // Blog Post
     'post.back': '返回所有文章',
