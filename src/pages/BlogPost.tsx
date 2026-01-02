@@ -232,15 +232,6 @@ const BlogPost = () => {
             <ArrowLeft className="h-4 w-4" />
             <span className="text-sm font-medium">{t('post.back')}</span>
           </Link>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDelete}
-            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            {t('post.delete')}
-          </Button>
         </div>
       </header>
 
