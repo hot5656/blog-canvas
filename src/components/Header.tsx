@@ -28,17 +28,31 @@ const Header = ({ onAddPost }: HeaderProps) => {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-        <Link 
-          to={getLocalizedPath('/')} 
-          className="flex items-center gap-3 transition-base hover:opacity-80"
-        >
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <PenLine className="h-5 w-5" />
-          </div>
-          <span className="font-serif text-xl font-semibold tracking-tight">
+        <div className="flex items-center gap-3">
+          {/* Logo 只連到 roberthut.com */}
+          <a
+            href="https://www.roberthut.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm hover:opacity-80 transition-opacity"
+            aria-label="Robert hut"
+          >
+            <img
+              src="/Robert_hut_512_nb.png"
+              alt=""
+              className="h-8 w-8 drop-shadow-sm"
+            />
+          </a>
+        
+          {/* The Journal 連到當前網站首頁 */}
+          <Link 
+            to={getLocalizedPath('/')} 
+            className="font-serif text-xl font-semibold tracking-tight hover:opacity-80 transition-opacity"
+          >
             The Journal
-          </span>
-        </Link>
+          </Link>
+        </div>
+
 
         <nav className="flex items-center gap-2">
           <LanguageSwitcher />
